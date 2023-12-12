@@ -1,0 +1,24 @@
+{
+  "name": "pixelhue-switcher",
+  "version": "1.1.0",
+  "main": "./src/main.js",
+  "type": "module",
+  "scripts": {
+    "format": "prettier -w ."
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitfocus/companion-module-pixelhue-switcher.git"
+  },
+  "dependencies": {
+    "@companion-module/base": "~1.5.1",
+    "axios": "^1.5.0",
+    "got": "^13.0.0",
+    "ping": "^0.4.4"
+  },
+  "devDependencies": {
+    "@companion-module/tools": "^1.4.1"
+  },
+  "prettier": "@companion-module/tools/.prettierrc.json"
+}
