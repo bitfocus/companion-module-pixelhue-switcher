@@ -39,12 +39,11 @@ function handleCmdPresetType(event) {
 
 function handleCmdPreset(event) {
   // 先下发全局applyType协议
-  let presetTypeCmd = Central_Control_Protocol_Device_PresetType[this.config.presetType ?? 'pvw']
+  let presetTypeCmd = Buffer.from(Central_Control_Protocol_Device_PresetType[this.config.presetType ?? 'pvw'])
   this.socket.send(presetTypeCmd)
 
   // 在下发场景协议
   let cmd = getPresetCmd(event.options.preset, PRESET_TYPE[this.config.presetType] ?? PRESET_TYPE.pvw)
-  this.log('info', cmd)
   this.socket.send(cmd)
 }
 
