@@ -31,7 +31,7 @@ export const getFeedbacks = (instance) => {
     description: 'Change the style when Load preset to PGM.',
     defaultStyle: {
       bgcolor: combineRgb(255, 0, 0),
-      text: 'Load to \nPGM',
+      text: 'Load to\nPGM',
     },
     options: [],
     callback: () => instance.config.presetType === 'pgm'

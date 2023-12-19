@@ -145,7 +145,7 @@ const displayPresets = {
     category: 'Display',
     name: 'presetType',
     style: {
-      text: 'Load to \nPVW',
+      text: 'Load to\nPVW',
       size: '18',
       color: combineRgb(255, 255, 255),
       bgcolor: combineRgb(0, 0, 0),
@@ -177,7 +177,7 @@ const displayPresets = {
         feedbackId: 'pgm',
         style: {
           bgcolor: combineRgb(255, 0, 0),
-          text: 'Load to \nPGM',
+          text: 'Load to\nPGM',
         },
         options: {}
       }

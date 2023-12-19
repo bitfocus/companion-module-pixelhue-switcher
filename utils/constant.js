@@ -139,12 +139,12 @@ export const HTTP_Protocol_FREEZE = [
 export const COMMON_PRESET_TYPE = [
   {
     id: 'pvw',
-    label: 'Load to \nPVW',
+    label: 'Load to\nPVW',
     default: 'pvw',
   },
   {
     id: 'pgm',
-    label: 'Load to \nPGM',
+    label: 'Load to\nPGM',
     default: 'pgm',
   },
 ]
