@@ -2,7 +2,7 @@
   "id": "pixelhue-switcher",
   "name": "pixelhue-switcher",
   "shortname": "pixelhue",
-  "description": "Companion module for PixelHue Switcher Devices",
+  "description": "Companion module for Pixelhue Switcher Devices",
   "version": "1.1.0",
   "license": "MIT",
   "repository": "git+https://github.com/bitfocus/companion-module-pixelhue-switcher.git",
@@ -20,7 +20,7 @@
     "entrypoint": "../src/main.js"
   },
   "legacyIds": [],
-  "manufacturer": "PixelHue",
+  "manufacturer": "Pixelhue",
   "products": [
     "P10",
     "P20",
@@ -30,6 +30,6 @@
     "Q8"
   ],
   "keywords": [
-    "PixelHue"
+    "Pixelhue"
   ]
 }

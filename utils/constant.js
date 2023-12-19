@@ -168,17 +168,17 @@ export const HTTP_PRESET_TYPE = {
 export const RETRY_COUNT = 3
 export const HTTP_DEVICES = ['p10', 'p20', 'q8'];
 
-export const CMD_DEVICES = ['f4', 'f4lite', 'f8'];
+export const CMD_DEVICES = ['f4', 'f4 lite', 'f8'];
 
-export const DEVICES = ['f4', 'f4lite', 'f8', 'p10', 'p20', 'q8'];
+export const DEVICES = ['f4', 'f4 lite', 'f8', 'p10', 'p20', 'q8'];
 
 export const DEVICE_PRESETS = {
   'p10': 128,
   'p20': 128,
   'f4': 240,
-  'f4lite': 240,
+  'f4 lite': 240,
   'f8': 240,
   'q8': 1024
 }
 
-export const DEVICES_INFORMATION = 'This module will allow you to control the following PixelHue products: F4, F4Lite, F8, P10, P20 and Q8.'
+export const DEVICES_INFORMATION = 'This module will allow you to control the following Pixelhue products: F4, F4 Lite, F8, P10, P20 and Q8.'

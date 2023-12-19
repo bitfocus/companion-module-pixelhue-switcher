@@ -96,12 +96,15 @@ export const getPresetCmd = (index, presetTypeVal) => {
   return cmd
 }
 
+// 首字母及空格后首字母大写
+const capitalizeFirstLetter = (str) => (str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))
+
 export const getSystemDeviceInfo = function () {
   const obj = {};
   DEVICES.forEach(item => {
     obj[item] = {
       id: item,
-      label: item.toLocaleUpperCase(),
+      label: capitalizeFirstLetter(item),
       ftb: HTTP_DEVICES.includes(item) ? HTTP_Protocol_FTB : Central_Control_Protocol_FTB,
       freeze: HTTP_DEVICES.includes(item) ? HTTP_Protocol_FREEZE : Central_Control_Protocol_FREEZE
     }
