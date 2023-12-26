@@ -4,6 +4,7 @@ import ping from 'ping';
 import { getActions } from './actions.js'
 import { getPresetDefinitions } from './presets.js'
 import { getFeedbacks } from './feedbacks.js'
+import { upgradeScripts } from './upgrades.js'
 
 import {
   HTTP_DEVICES,
@@ -354,4 +355,4 @@ class ModuleInstance extends InstanceBase {
   }
 }
 
-runEntrypoint(ModuleInstance, [])
+runEntrypoint(ModuleInstance, upgradeScripts)

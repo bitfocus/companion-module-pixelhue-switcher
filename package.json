@@ -1,6 +1,6 @@
 {
   "name": "pixelhue-switcher",
-  "version": "1.1.1",
+  "version": "1.1.0",
   "main": "./src/main.js",
   "type": "module",
   "scripts": {
