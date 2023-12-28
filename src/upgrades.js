@@ -1,14 +1,37 @@
 export const upgradeScripts = [
-  function (context, props) {
-    //customWebsocketsConfig
+  function (_context, props) {
     let result = {
       updatedConfig: null,
       updatedActions: [],
       updatedFeedbacks: [],
     }
-    if (props.config && !props.config.presetType) {
+    if (props.config) {
       result.updatedConfig = props.config
-      result.updatedConfig.presetType = 'pvw'
+      if (props.config.modelID && !props.config.modelId) {
+        result.updatedConfig.modelId = props.config.modelID
+      }
+      if (!props.config.presetType) {
+        result.updatedConfig.presetType = 'pvw'
+      }
+    }
+    for (const action of props.actions) {
+      switch (action.actionId) {
+        case 'change_black':
+          action.actionId = 'ftb'
+          action.options = { ftb: '1' }
+          result.updatedActions.push(action)
+          break
+        case 'change_freeze':
+          action.actionId = 'freeze'
+          action.options = { freeze: '1' }
+          result.updatedActions.push(action)
+          break
+        case 'load_preset':
+          action.actionId = 'preset'
+          action.options = { preset: '1' }
+          result.updatedActions.push(action)
+          break
+      }
     }
     return result
   },

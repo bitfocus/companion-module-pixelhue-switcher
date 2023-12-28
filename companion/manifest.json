@@ -19,7 +19,9 @@
     "apiVersion": "0.0.0",
     "entrypoint": "../src/main.js"
   },
-  "legacyIds": ["pixelhue-fseries"],
+  "legacyIds": [
+    "pixelhue-fseries"
+  ],
   "manufacturer": "Pixelhue",
   "products": [
     "P10",
