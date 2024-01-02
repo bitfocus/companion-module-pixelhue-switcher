@@ -334,7 +334,7 @@ class ModuleInstance extends InstanceBase {
     }
   }
 
-  init(config) {
+  async init(config) {
 
     this.config = Object.assign({}, config)
 
@@ -345,10 +345,13 @@ class ModuleInstance extends InstanceBase {
       this.config.model = this.DEVICES[0]
     }
 
+    // 初始化并再次更新设备恩协议及设备状态
     if (CMD_DEVICES.includes(this.config.modelId)) {
       this.initUDP()
       this.initTCP()
       this.heartbeat = setInterval(() => this.pingTest(), 10000) //check every 10s
+    } else if (HTTP_DEVICES.includes(this.config.modelId)) {
+      await this.getProtocol()
     }
 
     this.updateDefaultInfo.bind(this)()
