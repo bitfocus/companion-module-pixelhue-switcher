@@ -42,11 +42,11 @@ function handleCmdPreset(event) {
   let presetTypeCmd = Buffer.from(Central_Control_Protocol_Device_PresetType[this.config.presetType ?? 'pvw'])
   this.socket.send(presetTypeCmd)
   
-  // 0.5s在下发场景协议
+  // 20ms后在下发场景协议
   setTimeout(() => {    
     let cmd = getPresetCmd(event.options.preset, PRESET_TYPE[this.config.presetType] ?? PRESET_TYPE.pvw)
     this.socket.send(cmd)
-  }, 500)
+  }, 20)
 }
 
 export const cmdActions = {
