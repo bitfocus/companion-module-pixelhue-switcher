@@ -1,6 +1,6 @@
 {
   "name": "pixelhue-switcher",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "main": "./src/main.js",
   "type": "module",
   "scripts": {
@@ -15,6 +15,7 @@
     "@companion-module/base": "~1.5.1",
     "axios": "^1.5.0",
     "got": "^13.0.0",
+    "jsonwebtoken": "^9.0.2",
     "ping": "^0.4.4"
   },
   "devDependencies": {

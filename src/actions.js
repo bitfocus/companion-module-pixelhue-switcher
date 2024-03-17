@@ -11,35 +11,35 @@ import { cmdActions } from '../utils/cmdActions.js';
 import { httpActions } from '../utils/httpActions.js';
 
 export const getActions = (instance) => {
-  const modelId = instance.config.modelId
-  const isHttpDevice = HTTP_DEVICES.includes(modelId)
-  const actionsObj = isHttpDevice ? httpActions : cmdActions
+  const modelId = instance.config.modelId;
+  const isHttpDevice = HTTP_DEVICES.includes(modelId);
+  const actionsObj = isHttpDevice ? httpActions : cmdActions;
 
-  let actions = {}
+  let actions = {};
 
   actions['take'] = {
     name: 'TAKE',
     options: [],
     callback: async (event) => {
       try {
-        actionsObj['take'].bind(instance)(event)
+        actionsObj['take'].bind(instance)(event);
       } catch (error) {
-        instance.log('error', 'take send error')
+        instance.log('error', 'take send error');
       }
     },
-  }
+  };
 
   actions['cut'] = {
     name: 'CUT',
     options: [],
     callback: async (event) => {
       try {
-        actionsObj['cut'].bind(instance)(event)
+        actionsObj['cut'].bind(instance)(event);
       } catch (error) {
-        instance.log('error', 'cut send error')
+        instance.log('error', 'cut send error');
       }
     },
-  }
+  };
 
   actions['ftb'] = {
     name: 'Make the screen fade to black or return to normal',
@@ -54,12 +54,12 @@ export const getActions = (instance) => {
     ],
     callback: async (event) => {
       try {
-        actionsObj['ftb'].bind(instance)(event)
+        actionsObj['ftb'].bind(instance)(event);
       } catch (error) {
-        instance.log('error', 'FTB send error')
+        instance.log('error', 'FTB send error');
       }
     },
-  }
+  };
 
   actions['freeze'] = {
     name: 'Freeze/Unfreeze the screen',
@@ -74,12 +74,12 @@ export const getActions = (instance) => {
     ],
     callback: async (event) => {
       try {
-        actionsObj['freeze'].bind(instance)(event)
+        actionsObj['freeze'].bind(instance)(event);
       } catch (error) {
-        instance.log('error', 'FTB send error')
+        instance.log('error', 'FTB send error');
       }
     },
-  }
+  };
 
   actions['presetType'] = {
     name: 'Choose a destination to load the preset',
@@ -94,12 +94,12 @@ export const getActions = (instance) => {
     ],
     callback: async (event) => {
       try {
-        actionsObj['presetType'].bind(instance)(event)
+        actionsObj['presetType'].bind(instance)(event);
       } catch (error) {
-        instance.log('error', 'presetType set error')
+        instance.log('error', 'presetType set error');
       }
     },
-  }
+  };
 
   actions['preset'] = {
     name: 'Select a preset to load',
@@ -121,12 +121,12 @@ export const getActions = (instance) => {
     ],
     callback: async (event) => {
       try {
-        actionsObj['preset'].bind(instance)(event)
+        actionsObj['preset'].bind(instance)(event);
       } catch (error) {
-        instance.log('error', 'load_preset send error')
+        instance.log('error', 'load_preset send error');
       }
     },
-  }
+  };
 
-  return actions
-}
+  return actions;
+};

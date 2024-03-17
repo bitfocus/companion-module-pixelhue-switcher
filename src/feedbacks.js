@@ -1,4 +1,4 @@
-import { combineRgb } from '@companion-module/base'
+import { combineRgb } from '@companion-module/base';
 
 export const getFeedbacks = (instance) => {
   let feedbacks = {};
@@ -12,7 +12,7 @@ export const getFeedbacks = (instance) => {
     },
     options: [],
     callback: () => instance.config.ftb === '1'
-  }
+  };
 
   feedbacks['freeze'] = {
     type: 'boolean',
@@ -23,7 +23,7 @@ export const getFeedbacks = (instance) => {
     },
     options: [],
     callback: () => instance.config.freeze === '1'
-  }
+  };
 
   feedbacks['pgm'] = {
     type: 'boolean',
@@ -35,7 +35,7 @@ export const getFeedbacks = (instance) => {
     },
     options: [],
     callback: () => instance.config.presetType === 'pgm'
-  }
+  };
 
-  return feedbacks
-}
+  return feedbacks;
+};

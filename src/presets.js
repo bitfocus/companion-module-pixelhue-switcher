@@ -1,7 +1,7 @@
-import { combineRgb } from '@companion-module/base'
-import { DEVICE_PRESETS } from '../utils/constant.js'
+import { combineRgb } from '@companion-module/base';
+import { DEVICE_PRESETS } from '../utils/constant.js';
 
-let presetNum = 128
+let presetNum = 128;
 
 const basicPresets = {
   take: {
@@ -48,7 +48,7 @@ const basicPresets = {
     ],
     feedbacks: [],
   },
-}
+};
 
 const displayPresets = {
   ftb: {
@@ -183,7 +183,7 @@ const displayPresets = {
       }
     ],
   },
-}
+};
 
 const customPlayPresets = {
   'preset-play': {
@@ -210,10 +210,10 @@ const customPlayPresets = {
     ],
     feedbacks: [],
   },
-}
+};
 
 const getPresets = (num) => {
-  const playPresets = {}
+  const playPresets = {};
   for (let i = 1; i <= num; i++) {
     const preset = {
       type: 'button',
@@ -238,24 +238,24 @@ const getPresets = (num) => {
         },
       ],
       feedbacks: [],
-    }
-    playPresets['preset-play' + i] = preset
+    };
+    playPresets['preset-play' + i] = preset;
   }
-  return playPresets
-}
+  return playPresets;
+};
 
 export const getPresetDefinitions = function (instance) {
 
-  instance.log('info', 'preset-instance-config:')
-  instance.log('info', JSON.stringify(instance.config))
+  instance.log('info', 'preset-instance-config:');
+  instance.log('info', JSON.stringify(instance.config));
 
-  presetNum = parseInt(DEVICE_PRESETS[instance.config.modelId]) ?? 128
-  const playPresets = getPresets(presetNum)
+  presetNum = parseInt(DEVICE_PRESETS[instance.config.modelId]) ?? 128;
+  const playPresets = getPresets(presetNum);
 
   return {
     ...basicPresets,
     ...displayPresets,
     ...customPlayPresets,
     ...playPresets,
-  }
-}
+  };
+};

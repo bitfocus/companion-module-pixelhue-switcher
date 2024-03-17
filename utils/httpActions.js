@@ -1,6 +1,6 @@
-import got from 'got'
-import { HTTP_PRESET_TYPE } from './constant.js'
-import { handleReqWithToken } from './index.js'
+import got from 'got';
+import { HTTP_PRESET_TYPE } from './constant.js';
+import { handleReqWithToken } from './index.js';
 
 async function getTakeReq(token) {
   const obj = {
@@ -10,7 +10,7 @@ async function getTakeReq(token) {
       time: 500,
       type: 1,
     },
-  }
+  };
   const res = await got.put(`${this.config.baseURL}/v1/screen/selected/take`, {
     headers: {
       Authorization: token,
@@ -19,14 +19,14 @@ async function getTakeReq(token) {
       rejectUnauthorized: false,
     },
     json: obj,
-  })
-  return res
+  });
+  return res;
 }
 
 async function getCutReq(token) {
   const obj = {
     direction: 0,
-  }
+  };
   const res = await got.put(`${this.config.baseURL}/v1/screen/selected/cut`, {
     headers: {
       Authorization: token,
@@ -35,19 +35,19 @@ async function getCutReq(token) {
       rejectUnauthorized: false,
     },
     json: obj,
-  })
-  return res
+  });
+  return res;
 }
 
 async function getFTBReq(token, event) {
-  this.config.ftb = event.options.ftb
+  this.config.ftb = event.options.ftb;
   this.checkFeedbacks('ftb');
   const obj = {
     ftb: {
       enable: Number(event.options.ftb),
       time: 700,
     },
-  }
+  };
   const res = await got.put(`${this.config.baseURL}/v1/screen/selected/ftb`, {
     headers: {
       Authorization: token,
@@ -56,16 +56,16 @@ async function getFTBReq(token, event) {
       rejectUnauthorized: false,
     },
     json: obj,
-  })
-  return res
+  });
+  return res;
 }
 
 async function getFreezeReq(token, event) {
-  this.config.freeze = event.options.freeze
-  this.checkFeedbacks('freeze')
+  this.config.freeze = event.options.freeze;
+  this.checkFeedbacks('freeze');
   const obj = {
     freeze: Number(event.options.freeze),
-  }
+  };
   const res = await got.put(`${this.config.baseURL}/v1/screen/selected/freeze`, {
     headers: {
       Authorization: token,
@@ -74,8 +74,8 @@ async function getFreezeReq(token, event) {
       rejectUnauthorized: false,
     },
     json: obj,
-  })
-  return res
+  });
+  return res;
 }
 
 async function getPresetReq(token, event) {
@@ -83,8 +83,8 @@ async function getPresetReq(token, event) {
     sceneType: HTTP_PRESET_TYPE[this.config.presetType],
     id: Number(event.options.preset - 1),
     presetId: 0,
-  }
-  this.log('info', JSON.stringify(obj))
+  };
+  this.log('info', `getPresetReq-obj: ${JSON.stringify(obj)}`);
   const res = await got.put(`${this.config.baseURL}/v1/preset/play`, {
     headers: {
       Authorization: token,
@@ -93,8 +93,8 @@ async function getPresetReq(token, event) {
       rejectUnauthorized: false,
     },
     json: obj,
-  })
-  return res
+  });
+  return res;
 }
 
 function handleHttpPresetType(event) {
@@ -103,23 +103,23 @@ function handleHttpPresetType(event) {
 }
 
 function handleHttpTake(event) {
-  handleReqWithToken.bind(this)(getTakeReq, event)
+  handleReqWithToken.bind(this)(getTakeReq, event);
 }
 
 function handleHttpCut(event) {
-  handleReqWithToken.bind(this)(getCutReq, event)
+  handleReqWithToken.bind(this)(getCutReq, event);
 }
 
 function handleHttpFTB(event) {
-  handleReqWithToken.bind(this)(getFTBReq, event)
+  handleReqWithToken.bind(this)(getFTBReq, event);
 }
 
 function handleHttpFreeze(event) {
-  handleReqWithToken.bind(this)(getFreezeReq, event)
+  handleReqWithToken.bind(this)(getFreezeReq, event);
 }
 
 function handleHttpPreset(event) {
-  handleReqWithToken.bind(this)(getPresetReq, event)
+  handleReqWithToken.bind(this)(getPresetReq, event);
 }
 
 export const httpActions = {
@@ -129,4 +129,4 @@ export const httpActions = {
   'freeze': handleHttpFreeze,
   'presetType': handleHttpPresetType,
   'preset': handleHttpPreset
-}
+};
