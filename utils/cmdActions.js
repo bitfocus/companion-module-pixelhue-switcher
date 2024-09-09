@@ -46,7 +46,7 @@ function handleCmdPreset(event) {
   setTimeout(() => {
     let cmd = getPresetCmd(event.options.preset, PRESET_TYPE[this.config.presetType] ?? PRESET_TYPE.pvw);
     this.socket.send(cmd);
-  }, 20);
+  }, 500);
 }
 
 export const cmdActions = {
