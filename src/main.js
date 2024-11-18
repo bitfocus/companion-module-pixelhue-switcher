@@ -549,7 +549,15 @@ class ModuleInstance extends InstanceBase {
 			this.initTCP()
 			this.heartbeat = setInterval(() => this.pingTest(), 10000) //check every 10s
 		} else if (HTTP_DEVICES.includes(this.config.modelId)) {
-			await this.getDevicesByUCenter()
+			await Promise.race([
+				new Promise((resolve) =>
+					setTimeout(() => {
+						this.log('info', 'promise-race-5...')
+						resolve()
+					}, 5000)
+				),
+				this.getDevicesByUCenter(),
+			])
 		}
 
 		this.updateDefaultInfo.bind(this)()
