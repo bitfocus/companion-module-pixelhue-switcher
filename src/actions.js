@@ -103,8 +103,8 @@ export const getActions = (instance) => {
 		},
 	}
 
-	actions['preset'] = {
-		name: 'Select a preset to load',
+	actions['preset-pvw'] = {
+		name: 'Select a preset to load to PRW',
 		options: [
 			{
 				type: 'dropdown',
@@ -126,7 +126,40 @@ export const getActions = (instance) => {
 					options: {
 						presetId: obj.presetId,
 						i: obj.i,
-						sceneType: obj.sceneType,
+						sceneType: isHttpDevice ? 4 : 0
+					},
+				}
+				actionsObj['preset'].bind(instance)(data)
+			} catch (error) {
+				instance.log('error', 'load_preset send error')
+			}
+		},
+	}
+
+	actions['preset-pgm'] = {
+		name: 'Load a preset directly to PGM',
+		options: [
+			{
+				type: 'dropdown',
+				name: 'Preset',
+				id: 'presetId',
+				default: 1,
+				choices: Object.values(instance.presetDefinitionPreset).map((item) => ({
+					id: item.presetId,
+					label: item.name,
+				})),
+			},
+		],
+		callback: async (event) => {
+			try {
+				let obj = instance.presetDefinitionPreset[`preset-play${event.options.presetId}`]
+
+				if (!obj) return
+				let data = {
+					options: {
+						presetId: obj.presetId,
+						i: obj.i,
+						sceneType: isHttpDevice ? 2 : 1,
 					},
 				}
 				actionsObj['preset'].bind(instance)(data)

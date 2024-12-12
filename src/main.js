@@ -165,12 +165,13 @@ class ModuleInstance extends InstanceBase {
 				this.config.UCenterFlag = {
 					protocol,
 					ip: '127.0.0.1',
-					port: '8088',
+					port: '51125',
 				}
 				await this.getDeviceStatusByOpenDetail()
 				this.getGlobalSwitchEffect()
 			}
 		} catch (e) {
+			this.log('error', `getDeviceByUCenter Error: ${e.toString()}`)
 			await this.getProtocol()
 		}
 	}
@@ -178,7 +179,7 @@ class ModuleInstance extends InstanceBase {
 	async getDeviceStatusByPWD() {
 		this.config.baseURL = `${this.config.protocol}://${this.config.host}:${this.config.port}/unico`
 
-		this.log('info', `getDeviceStatusByPWD-url:${this.config.baseURL} - ${new Date().getTime()}`)
+		this.log('info', `getDeviceStatusByPWD-url:${this.config.baseURL} - ${ new Date().toString}`)
 		this.log('info', `tokenInfo:${this.config.username}/${this.config.password}`)
 
 		const res = await getToken(this.config.baseURL, {
@@ -201,7 +202,7 @@ class ModuleInstance extends InstanceBase {
 
 	async getDeviceStatusByOpenDetail() {
 		this.config.baseURL = `${this.config.protocol}://${this.config.host}:${this.config.port}/unico`
-		this.log('info', `getDeviceStatusByOpenDetail-url:${this.config.baseURL} - ${new Date().getTime()}`)
+		this.log('info', `getDeviceStatusByOpenDetail-url:${this.config.baseURL} - ${new Date().toString()}`)
 
 		const res = await getOpenDetail(this.config.baseURL, this.config.UCenterFlag)
 		this.log('info', `getDeviceStatusByOpenDetail-res:${JSON.stringify(res)}`)
@@ -236,7 +237,7 @@ class ModuleInstance extends InstanceBase {
 
 	async getProtocol() {
 		this.log('info', 'getProtocol')
-		this.config.port = 8088
+		this.config.port = 19998
 		const func = this.config.isOldVersion ? this.getDeviceStatusByPWD : this.getDeviceStatusByOpenDetail
 		try {
 			try {
