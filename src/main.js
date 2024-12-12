@@ -165,7 +165,7 @@ class ModuleInstance extends InstanceBase {
 				this.config.UCenterFlag = {
 					protocol,
 					ip: '127.0.0.1',
-					port: '51125',
+					port: device?.SN.includes('virtual') ? '51125' : '8088', //Changed here to work with Simulator via PixelFlow
 				}
 				await this.getDeviceStatusByOpenDetail()
 				this.getGlobalSwitchEffect()
