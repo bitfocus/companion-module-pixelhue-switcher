@@ -13,6 +13,7 @@ import { httpActions } from '../utils/httpActions.js'
 import { isHttpDeviceWithDQ } from '../utils/index.js'
 
 export const getActions = (instance) => {
+
 	const modelId = instance.config.modelId
 	const isHttpDevice = HTTP_DEVICES.includes(modelId)
 	const actionsObj = isHttpDevice ? httpActions : cmdActions
@@ -104,28 +105,25 @@ export const getActions = (instance) => {
 	}
 
 	actions['presetPvw'] = {
-		name: 'Select a preset to load to PRW',
+		name: 'Select a preset to load to PVW',
 		options: [
 			{
 				type: 'dropdown',
 				name: 'Preset',
 				id: 'presetId',
 				default: 1,
-				choices: Object.values(instance.presetDefinitionPreset).map((item) => ({
+				choices: Object.values(instance.presetList).map((item) => ({
 					id: item.presetId,
-					label: item.name,
+					label: item.general.name,
 				})),
 			},
 		],
 		callback: async (event) => {
 			try {
-				let obj = instance.presetDefinitionPreset[`preset-play${event.options.presetId}`]
-
-				if (!obj) return
 				let data = {
 					options: {
-						presetId: obj.presetId,
-						i: obj.i,
+						presetId: event.options.presetId,
+						//i: obj.i, why use that not necessary anymore?
 						sceneType: isHttpDevice ? 4 : 0
 					},
 				}
@@ -144,21 +142,19 @@ export const getActions = (instance) => {
 				name: 'Preset',
 				id: 'presetId',
 				default: 1,
-				choices: Object.values(instance.presetDefinitionPreset).map((item) => ({
+				choices: Object.values(instance.presetList).map((item) => ({
 					id: item.presetId,
-					label: item.name,
+					label: item.general.name,
 				})),
 			},
 		],
 		callback: async (event) => {
+			instance.log('info', JSON.stringify(event))
 			try {
-				let obj = instance.presetDefinitionPreset[`preset-play${event.options.presetId}`]
-
-				if (!obj) return
 				let data = {
 					options: {
-						presetId: obj.presetId,
-						i: obj.i,
+						presetId: event.options.presetId,
+						//i: obj.i, why use that not necessary anymore?
 						sceneType: isHttpDevice ? 2 : 1,
 					},
 				}

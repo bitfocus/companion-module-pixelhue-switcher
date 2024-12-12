@@ -94,7 +94,7 @@ async function getPresetReq(token, event) {
 	const obj = {
 		sceneType: event.options.sceneType,
 		presetId: event.options.presetId,
-		id: event.options.preset, // 场景创建的i
+		//id: event.options.preset, // 场景创建的i not necessary anymore?
 	}
 	this.log('info', `getPresetReq-obj: ${JSON.stringify(obj)}`)
 	const res = await got
@@ -111,7 +111,7 @@ async function getPresetReq(token, event) {
 			json: obj,
 		})
 		.json()
-	this.log('info', `场景设置成功了${JSON.stringify(res)}`)
+	this.log('info', `The scene was set successfully - 场景设置成功了${JSON.stringify(res)}`)
 	return res
 }
 

@@ -33,6 +33,7 @@ class ModuleInstance extends InstanceBase {
 
 		this.screenSelect = {}
 		this.layerSelect = {}
+		this.presetList = {}
 		this.presetDefinitionPreset = {}
 		this.presetDefinitionScreen = {}
 		this.presetDefinitionLayer = {}
@@ -328,9 +329,10 @@ class ModuleInstance extends InstanceBase {
 			this.presetDefinitionScreen = {}
 			this.presetDefinitionLayer = {}
 			this.presetDefinitionSource = {}
+			this.presetList = presetList
 
 			// 处理图层的数据
-			this.presetDefinitionPreset = getPresetFormatData(presetList)
+			this.presetDefinitionPreset = getPresetFormatData(presetList, this)
 			this.presetDefinitionScreen = getScreenFormatData(screenFilterLiter, this)
 			this.presetDefinitionLayer = getLayerFormatData(layerList, screenList, this)
 			this.presetDefinitionSource = getSourceFormatData(sourceList, this)
