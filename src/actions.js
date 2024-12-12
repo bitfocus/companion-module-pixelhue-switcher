@@ -103,7 +103,7 @@ export const getActions = (instance) => {
 		},
 	}
 
-	actions['preset-pvw'] = {
+	actions['presetPvw'] = {
 		name: 'Select a preset to load to PRW',
 		options: [
 			{
@@ -136,7 +136,7 @@ export const getActions = (instance) => {
 		},
 	}
 
-	actions['preset-pgm'] = {
+	actions['presetPgm'] = {
 		name: 'Load a preset directly to PGM',
 		options: [
 			{
