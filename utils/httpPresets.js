@@ -1,11 +1,15 @@
 import got from 'got'
 import { combineRgb } from '@companion-module/base'
+import { HTTP_DEVICES } from '../utils/constant.js'
 
-export const getPresetFormatData = (list) => {
+export const getPresetFormatData = (list, instance) => {
+	const modelId = instance.config.modelId
+	const isHttpDevice = HTTP_DEVICES.includes(modelId)
+
 	const playPresets = {}
 	for (let i = 1; i <= list.length; i++) {
 		const item = list[i - 1]
-		const preset = {
+		const presetPvw = {
 			type: 'button',
 			category: 'Presets',
 			name: item.general.name,
@@ -13,7 +17,7 @@ export const getPresetFormatData = (list) => {
 			sceneType: item.presetIdObj.sceneType,
 			i: i,
 			style: {
-				text: item.general.name,
+				text: `PVW ${item.general.name}`,
 				size: 'auto',
 				color: combineRgb(0, 0, 0),
 				bgcolor: combineRgb(0, 255, 0),
@@ -22,10 +26,10 @@ export const getPresetFormatData = (list) => {
 				{
 					down: [
 						{
-							actionId: 'preset',
+							actionId: 'presetPvw',
 							options: {
 								presetId: item.presetId,
-								sceneType: item.presetIdObj.sceneType,
+								sceneType: isHttpDevice ? 4 : 0,
 								playType: item.presetIdObj.playType,
 								preset: i,
 							},
@@ -35,7 +39,39 @@ export const getPresetFormatData = (list) => {
 			],
 			feedbacks: [],
 		}
-		playPresets['preset-play' + item.presetId] = preset
+		playPresets['preset-play-pvw' + item.presetId] = presetPvw
+
+		const presetPgm = {
+			type: 'button',
+			category: 'Presets',
+			name: item.general.name,
+			presetId: item.presetId,
+			sceneType: item.presetIdObj.sceneType,
+			i: i,
+			style: {
+				text: `PGM ${item.general.name}`,
+				size: 'auto',
+				color: combineRgb(0, 0, 0),
+				bgcolor: combineRgb(255, 0, 0),
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'presetPgm',
+							options: {
+								presetId: item.presetId,
+								sceneType: isHttpDevice ? 2 : 1,
+								playType: item.presetIdObj.playType,
+								preset: i,
+							},
+						},
+					],
+				},
+			],
+			feedbacks: [],
+		}
+		playPresets['preset-play-pgm' + item.presetId] = presetPgm
 	}
 	return playPresets
 }

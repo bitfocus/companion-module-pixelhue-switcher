@@ -13,6 +13,7 @@ import { httpActions } from '../utils/httpActions.js'
 import { isHttpDeviceWithDQ } from '../utils/index.js'
 
 export const getActions = (instance) => {
+
 	const modelId = instance.config.modelId
 	const isHttpDevice = HTTP_DEVICES.includes(modelId)
 	const actionsObj = isHttpDevice ? httpActions : cmdActions
@@ -103,30 +104,58 @@ export const getActions = (instance) => {
 		},
 	}
 
-	actions['preset'] = {
-		name: 'Select a preset to load',
+	actions['presetPvw'] = {
+		name: 'Select a preset to load to PVW',
 		options: [
 			{
 				type: 'dropdown',
 				name: 'Preset',
 				id: 'presetId',
 				default: 1,
-				choices: Object.values(instance.presetDefinitionPreset).map((item) => ({
+				choices: Object.values(instance.presetList).map((item) => ({
 					id: item.presetId,
-					label: item.name,
+					label: item.general.name,
 				})),
 			},
 		],
 		callback: async (event) => {
 			try {
-				let obj = instance.presetDefinitionPreset[`preset-play${event.options.presetId}`]
-
-				if (!obj) return
 				let data = {
 					options: {
-						presetId: obj.presetId,
-						i: obj.i,
-						sceneType: obj.sceneType,
+						presetId: event.options.presetId,
+						//i: obj.i, why use that not necessary anymore?
+						sceneType: isHttpDevice ? 4 : 0
+					},
+				}
+				actionsObj['preset'].bind(instance)(data)
+			} catch (error) {
+				instance.log('error', 'load_preset send error')
+			}
+		},
+	}
+
+	actions['presetPgm'] = {
+		name: 'Load a preset directly to PGM',
+		options: [
+			{
+				type: 'dropdown',
+				name: 'Preset',
+				id: 'presetId',
+				default: 1,
+				choices: Object.values(instance.presetList).map((item) => ({
+					id: item.presetId,
+					label: item.general.name,
+				})),
+			},
+		],
+		callback: async (event) => {
+			instance.log('info', JSON.stringify(event))
+			try {
+				let data = {
+					options: {
+						presetId: event.options.presetId,
+						//i: obj.i, why use that not necessary anymore?
+						sceneType: isHttpDevice ? 2 : 1,
 					},
 				}
 				actionsObj['preset'].bind(instance)(data)
@@ -197,7 +226,32 @@ export const getActions = (instance) => {
 			try {
 				actionsObj['layer'].bind(instance)(event)
 			} catch (error) {
-				instance.log('error', 'load_preset send error')
+				instance.log('error', 'load_select_layer send error')
+			}
+		},
+	}
+
+	actions['bring_to'] = {
+		name: 'Bring selected to desired',
+		options: [
+			{
+				type: 'dropdown',
+				name: 'Bring to',
+				id: 'bringId',
+				default: 1,
+				choices:[
+					{ id: '1', label: 'Bring Farward', default: '1' },
+					{ id: '2', label: 'Bring Backward', default: '2' },
+					{ id: '3', label: 'Bring to Front', default: '3' },
+					{ id: '4', label: 'Bring to Back', default: '4' },
+				],
+			},
+		],
+		callback: async (event) => {
+			try {
+				actionsObj['bring_to'].bind(instance)(event)
+			} catch (error) {
+				instance.log('error', 'bring_to send error')
 			}
 		},
 	}
