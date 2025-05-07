@@ -229,6 +229,51 @@ async function getLayersSourceReq(token, event) {
 	return res
 }
 
+
+async function setBringTo(token, event) {
+	let layerId = -1
+	for (let key in this.layerSelect) {
+		if (this.layerSelect[key] === 1) {
+			layerId = key
+		}
+	}
+
+	this.log('info', layerId)
+
+	if (layerId === -1) return
+
+	const obj = [
+		{
+			layerId: Number(layerId),
+			zorder: {
+				type: 1,
+				para: Number(event.options.bringId)
+			},
+		},
+	]
+
+	this.log('info', JSON.stringify(obj))
+	const res = await got
+		.put(`${this.config.baseURL}/v1/layers/zorder`, {
+			headers: {
+				Authorization: token,
+				ip: this.config?.UCenterFlag?.ip,
+				port: this.config?.UCenterFlag?.port,
+				protocol: this.config?.UCenterFlag?.protocol,
+			},
+			https: {
+				rejectUnauthorized: false,
+			},
+			json: obj,
+		})
+		.json()
+
+	this.log('info', `putBringFarward: ${JSON.stringify(res)}`)
+
+	return res
+}
+
+
 async function setSwapCopyReq(token, event) {
 	this.config.swapCopy = event.options.swapCopy
 	this.checkFeedbacks('swapCopy')
@@ -371,6 +416,9 @@ function handleHttpTakeTime(event) {
 function handleHttpMapping(event) {
 	handleReqWithToken.bind(this)(setMappingReq, event)
 }
+function handleHttpBringTo(event) {
+	handleReqWithToken.bind(this)(setBringTo, event)
+}
 
 export const httpActions = {
 	take: handleHttpTake,
@@ -386,4 +434,5 @@ export const httpActions = {
 	matchPgm: handleHttpCut,
 	takeTime: handleHttpTakeTime,
 	mapping: handleHttpMapping,
+	bring_to: handleHttpBringTo,
 }

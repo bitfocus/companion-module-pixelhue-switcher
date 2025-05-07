@@ -226,7 +226,32 @@ export const getActions = (instance) => {
 			try {
 				actionsObj['layer'].bind(instance)(event)
 			} catch (error) {
-				instance.log('error', 'load_preset send error')
+				instance.log('error', 'load_select_layer send error')
+			}
+		},
+	}
+
+	actions['bring_to'] = {
+		name: 'Bring selected to desired',
+		options: [
+			{
+				type: 'dropdown',
+				name: 'Bring to',
+				id: 'bringId',
+				default: 1,
+				choices:[
+					{ id: '1', label: 'Bring Farward', default: '1' },
+					{ id: '2', label: 'Bring Backward', default: '2' },
+					{ id: '3', label: 'Bring to Front', default: '3' },
+					{ id: '4', label: 'Bring to Back', default: '4' },
+				],
+			},
+		],
+		callback: async (event) => {
+			try {
+				actionsObj['bring_to'].bind(instance)(event)
+			} catch (error) {
+				instance.log('error', 'bring_to send error')
 			}
 		},
 	}
