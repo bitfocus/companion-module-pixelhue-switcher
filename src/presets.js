@@ -1,5 +1,6 @@
 import { combineRgb } from '@companion-module/base'
 import { isHttpDevice, isHttpDeviceWithDQ } from '../utils/index.js'
+import { DEVICE_PRESETS } from '../utils/constant.js'
 
 const displayPresets = {
 	take: {
@@ -388,13 +389,52 @@ const mapping = {
 	],
 }
 
-export const getPresetDefinitions = function (instance) {
-	if (isHttpDevice(instance)) {
-		Object.assign(displayPresets, { swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight })
-		if (isHttpDeviceWithDQ(instance)) {
-			Object.assign(displayPresets, { mapping })
+// F系列场景
+const getFseriesPresets = (num) => {
+	const playPresets = {}
+	for (let i = 1; i <= num; i++) {
+		const preset = {
+			type: 'button',
+			category: 'Presets',
+			name: 'Preset ' + i,
+			style: {
+				text: 'Preset \n' + i,
+				size: '18',
+				color: combineRgb(0, 0, 0),
+				bgcolor: combineRgb(0, 255, 0),
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'preset',
+							options: {
+								preset: i,
+							},
+						},
+					],
+				},
+			],
+			feedbacks: [],
 		}
+		playPresets['preset-play' + i] = preset
+	}
+	return playPresets
+}
+
+export const getPresetDefinitions = function (instance) {
+	let basicPresets = {}
+	if (isHttpDevice(instance)) {
+		basicPresets = { ...displayPresets, swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight }
+		if (isHttpDeviceWithDQ(instance)) {
+			basicPresets = { ...basicPresets, mapping }
+		}
+	} else {
+		// F系列场景生成
+		const presetNum = parseInt(DEVICE_PRESETS[instance.config.modelId]) ?? 128
+		const fSeriesPresets = getFseriesPresets(presetNum)
+		basicPresets = { ...displayPresets, ...fSeriesPresets }
 	}
 
-	return displayPresets
+	return basicPresets
 }

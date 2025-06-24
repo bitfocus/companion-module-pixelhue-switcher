@@ -91,8 +91,9 @@ async function getFreezeReq(token, event) {
 }
 
 async function getPresetReq(token, event) {
+	// sceneType 从当前配置的 Load to PVW/PGM 获取
 	const obj = {
-		sceneType: event.options.sceneType,
+		sceneType: HTTP_PRESET_TYPE[this.config.presetType],
 		presetId: event.options.presetId,
 		id: event.options.preset, // 场景创建的i
 	}
