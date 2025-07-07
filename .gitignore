@@ -1,5 +1,7 @@
 node_modules/
 package-lock.json
 /pkg
-/pkg.tgz
+/*.tgz
 .yarn/
+.idea
+.DS_Store
