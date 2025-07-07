@@ -80,6 +80,7 @@ class ModuleInstance extends InstanceBase {
 				width: 6,
 				default: '192.168.0.10',
 				regex: Regex.IP,
+				require: true,
 			},
 			{
 				type: 'dropdown',
@@ -137,7 +138,7 @@ class ModuleInstance extends InstanceBase {
 			clearInterval(this.heartbeat)
 			delete this.heartbeat
 		}
-		// 删除心跳
+		// 删除心跳 //ToDO: Chinese translation
 		if (this.presetBeat) {
 			clearInterval(this.presetBeat)
 			delete this.presetBeat
@@ -162,7 +163,7 @@ class ModuleInstance extends InstanceBase {
 				const protocol = ['http', 'https'].includes(deviceProtocol) ? deviceProtocol : 'http'
 				this.log('info', `getDevicesByUCenter-protocol:${protocol}`)
 
-				// 该信息需在server接口header中同步下发
+				// This information needs to be sent synchronously in the server interface header
 				this.config.UCenterFlag = {
 					protocol,
 					ip: '127.0.0.1',
@@ -279,8 +280,8 @@ class ModuleInstance extends InstanceBase {
 		try {
 			const res = await getScreenPresets(this.config.baseURL, this.config.token, this)
 			if (res.code === 0) {
-				// 屏幕类型：【0：空屏幕；2:普通屏幕;4:AUX屏幕;8:MVR屏幕；16:回显屏幕；32：led屏幕】
-				// 目前只展示普通屏幕
+				// Screen type: [0: empty screen; 2: normal screen; 4: AUX screen; 8: MVR screen; 16: echo screen; 32: LED screen]
+				// Currently only normal screen is displayed
 				obj = (res.data.list ?? []).filter((item) => item.enable == 1)
 			}
 		} catch (e) {}
@@ -290,13 +291,13 @@ class ModuleInstance extends InstanceBase {
 	async getLayerList() {
 		this.log('info', `getLayerList2`)
 		this.config.baseURL = `${this.config.protocol}://${this.config.host}:${this.config.port}/unico`
-		// 由于图层需要拼接
+		// Because the layers need to be stitched
 		let obj = []
 		try {
 			const res = await getLayerPresets(this.config.baseURL, this.config.token, this)
 			if (res.code === 0) {
-				// 源类型 【 0：空图层 1：无源； 2：输入类型；3：PGM；4：PVW； 5：BKG图片 6：LOGO图片  7：IPC类型8：截取源类型 9:   拼接源 10: ipc拼接屏11: 内置源12：内置图形源 13：图片OSD 14:文字OSD】
-				// 空图层不展示
+				// Source type [0: Empty layer 1: Passive; 2: Input type; 3: PGM; 4: PVW; 5: BKG image 6: LOGO image 7: IPC type 8: Intercept source type 9: Splicing source 10: ipc splicing screen 11: Built-in source 12: Built-in graphic source 13: Image OSD 14: Text OSD]
+				// Empty layer is not displayed
 				obj = (res.data.list ?? []).filter((item) => item?.source?.general?.sourceType !== 0)
 			}
 		} catch (e) {}
@@ -306,7 +307,7 @@ class ModuleInstance extends InstanceBase {
 	async getSourceList() {
 		this.log('info', `getLayerList2`)
 		this.config.baseURL = `${this.config.protocol}://${this.config.host}:${this.config.port}/unico`
-		// 由于图层需要拼接
+		// Because the layers need to be stitched
 		let obj = []
 		try {
 			const res = await getSourcePresets(this.config.baseURL, this.config.token, this)
@@ -331,7 +332,7 @@ class ModuleInstance extends InstanceBase {
 			this.presetDefinitionSource = {}
 			this.presetList = presetList
 
-			// 处理图层的数据
+			// Processing layer data
 			this.presetDefinitionPreset = getPresetFormatData(presetList, this)
 			this.presetDefinitionScreen = getScreenFormatData(screenFilterLiter, this)
 			this.presetDefinitionLayer = getLayerFormatData(layerList, screenList, this)
@@ -394,7 +395,7 @@ class ModuleInstance extends InstanceBase {
 				this.updateStatus(status, message)
 			})
 
-			this.socket.on('error', (err) => {
+			this.socket.on('error', async (err) => {
 				this.updateStatus(InstanceStatus.ConnectionFailure)
 				this.log('error', 'Network error: ' + err.message)
 				console.log('TCP Connection error, Try to reconnect.')
@@ -404,7 +405,11 @@ class ModuleInstance extends InstanceBase {
 						0x72, 0x65, 0x71, 0x4e, 0x4f, 0x56, 0x41, 0x53, 0x54, 0x41, 0x52, 0x5f, 0x4c, 0x49, 0x4e, 0x4b, 0x3a, 0x00,
 						0x00, 0x03, 0xfe, 0xff,
 					]) // Port FFFE
-					this.udp.send(cmd_connect)
+					try {
+						await this.udp.send(cmd_connect)
+					} catch (e) {
+						this.log('debug', 'UDP send error: ' + e)
+					}
 				} else {
 					this.initUDP()
 				}
@@ -431,7 +436,7 @@ class ModuleInstance extends InstanceBase {
 		}
 	}
 
-	initUDP() {
+	async initUDP() {
 		if (this.udp !== undefined) {
 			this.udp.destroy()
 			delete this.udp
@@ -465,7 +470,11 @@ class ModuleInstance extends InstanceBase {
 				0x72, 0x65, 0x71, 0x4e, 0x4f, 0x56, 0x41, 0x53, 0x54, 0x41, 0x52, 0x5f, 0x4c, 0x49, 0x4e, 0x4b, 0x3a, 0x00,
 				0x00, 0x03, 0xfe, 0xff,
 			])
-			this.udp.send(cmd_register)
+			try {
+				await this.udp.send(cmd_register)
+			} catch (e) {
+				this.log('debug', 'UDP send error: ' + e)
+			}
 			this.log('info', 'UDP registration.')
 		}
 	}
@@ -495,6 +504,7 @@ class ModuleInstance extends InstanceBase {
 			...config,
 			model: this.DEVICES_INFO[config.modelId],
 		}
+		this.updateDefaultInfo.bind(this)()
 
 		if (HTTP_DEVICES.includes(this.config.modelId)) {
 			this.log('info', 'http configUpdated handle...')
@@ -546,7 +556,7 @@ class ModuleInstance extends InstanceBase {
 			this.config.model = this.DEVICES[0]
 		}
 
-		// 初始化并再次更新设备恩协议及设备状态
+		// Initialize and re-update the device protocol and device status
 		if (CMD_DEVICES.includes(this.config.modelId)) {
 			this.initUDP()
 			this.initTCP()

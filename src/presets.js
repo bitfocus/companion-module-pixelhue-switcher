@@ -1,5 +1,6 @@
 import { combineRgb } from '@companion-module/base'
 import { isHttpDevice, isHttpDeviceWithDQ } from '../utils/index.js'
+import { DEVICE_PRESETS } from '../utils/constant.js'
 
 const displayPresets = {
 	take: {
@@ -245,7 +246,7 @@ const matchPgm = {
 	feedbacks: [],
 }
 
-// Take Time 旋钮
+// Take Time Knobs
 const takeTime = {
 	type: 'button',
 	category: 'Display',
@@ -344,7 +345,7 @@ const takeTimeRight = {
 	],
 }
 
-// 输出定位开关，按钮文本Mapping
+// Output positioning switch, button text mapping
 const mapping = {
 	type: 'button',
 	name: 'Mapping',
@@ -388,6 +389,7 @@ const mapping = {
 	],
 }
 
+//Bring the selected layer to a position
 const bringTo = {
 	bringFarward: {
 		type: 'button',
@@ -488,13 +490,52 @@ const bringTo = {
 	
 }
 
-export const getPresetDefinitions = function (instance) {
-	if (isHttpDevice(instance)) {
-		Object.assign(displayPresets, { swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight }, bringTo)
-		if (isHttpDeviceWithDQ(instance)) {
-			Object.assign(displayPresets, { mapping })
+// Series F scenes
+const getFseriesPresets = (num) => {
+	const playPresets = {}
+	for (let i = 1; i <= num; i++) {
+		const preset = {
+			type: 'button',
+			category: 'Presets',
+			name: 'Preset ' + i,
+			style: {
+				text: 'Preset \n' + i,
+				size: '18',
+				color: combineRgb(0, 0, 0),
+				bgcolor: combineRgb(0, 255, 0),
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'preset',
+							options: {
+								preset: i,
+							},
+						},
+					],
+				},
+			],
+			feedbacks: [],
 		}
+		playPresets['preset-play' + i] = preset
+	}
+	return playPresets
+}
+
+export const getPresetDefinitions = function (instance) {
+	let basicPresets = {}
+	if (isHttpDevice(instance)) {
+		basicPresets = { ...displayPresets, swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight, ...bringTo }
+		if (isHttpDeviceWithDQ(instance)) {
+			basicPresets = { ...basicPresets, mapping }
+		}
+	} else {
+		// Generation of series F scenes
+		const presetNum = parseInt(DEVICE_PRESETS[instance.config.modelId]) ?? 128
+		const fSeriesPresets = getFseriesPresets(presetNum)
+		basicPresets = { ...displayPresets, ...fSeriesPresets }
 	}
 
-	return displayPresets
+	return basicPresets
 }

@@ -91,10 +91,11 @@ async function getFreezeReq(token, event) {
 }
 
 async function getPresetReq(token, event) {
+	// sceneType is obtained from the currently configured Load to PVW/PGM
 	const obj = {
-		sceneType: event.options.sceneType,
+		sceneType: event.options.sceneType, //HTTP_PRESET_TYPE[this.config.presetType],
 		presetId: event.options.presetId,
-		//id: event.options.preset, // 场景创建的i not necessary anymore?
+		//id: event.options.preset, // scene creation -> is not necessary anymore?
 	}
 	this.log('info', `getPresetReq-obj: ${JSON.stringify(obj)}`)
 	const res = await got
@@ -111,7 +112,7 @@ async function getPresetReq(token, event) {
 			json: obj,
 		})
 		.json()
-	this.log('info', `The scene was set successfully - 场景设置成功了${JSON.stringify(res)}`)
+	this.log('info', `The scene was set successfully - The scene was set successfully ${JSON.stringify(res)}`)
 	return res
 }
 
@@ -148,11 +149,11 @@ async function getScreenReq(token, event) {
 		this.checkFeedbacks('screen')
 	}
 
-	this.log('info', `屏幕设置成功了${JSON.stringify(res)}`)
+	this.log('info', `Screen setup was successful ${JSON.stringify(res)}`)
 	return res
 }
 
-// 选中图层
+// Select layer
 async function getLayerReq(token, event) {
 	// for (let key in this.layerSelect) {
 	// 	this.layerSelect[key] = false
@@ -224,7 +225,7 @@ async function getLayersSourceReq(token, event) {
 		})
 		.json()
 
-	this.log('info', `切源成功了${JSON.stringify(res)}`)
+	this.log('info', `The source was successfully cut ${JSON.stringify(res)}`)
 
 	return res
 }

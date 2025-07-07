@@ -7,6 +7,8 @@ import {
 	Central_Control_Protocol_FREEZE,
 	HTTP_Protocol_Swap_Copy,
 	HTTP_Protocol_Output_Switch,
+	CMD_DEVICES,
+	DEVICE_PRESETS,
 } from '../utils/constant.js'
 import { cmdActions } from '../utils/cmdActions.js'
 import { httpActions } from '../utils/httpActions.js'
@@ -104,7 +106,68 @@ export const getActions = (instance) => {
 		},
 	}
 
-	actions['presetPvw'] = {
+	if (CMD_DEVICES.includes(modelId)) {
+		actions['preset'] = {
+			name: 'Select a preset to load',
+			options: [
+				{
+					type: 'dropdown',
+					name: 'Preset',
+					id: 'preset',
+					default: 1,
+					choices: [...Array(parseInt(DEVICE_PRESETS[modelId]) ?? 128)].map((_, index) => ({
+						id: index + 1,
+						label: `Preset ${index + 1}`,
+					})),
+				},
+			],
+			callback: async (event) => {
+				try {
+					actionsObj['preset'].bind(instance)(event)
+				} catch (error) {
+					instance.log('error', 'load_preset send error')
+				}
+			},
+		}
+	}
+	if(isHttpDevice){
+		actions['preset'] = {
+			name: 'Select a preset to load',
+			options: [
+				{
+					type: 'dropdown',
+					name: 'Preset',
+					id: 'presetId',
+					default: 1,
+					choices: Object.entries(instance.presetDefinitionPreset)
+					.filter(([key, value]) => !key.includes('pgm') && !key.includes('pvw'))
+					.map(([key, value]) => ({
+						id: value.presetId,
+						label: value.name,
+					}))
+				},
+			],
+			callback: async (event) => {
+				try {
+					let obj = instance.presetDefinitionPreset[`preset-play${event.options.presetId}`]
+
+					if (!obj) return
+					let data = {
+						options: {
+							presetId: obj.presetId,
+							i: obj.i,
+							sceneType: obj.sceneType,
+						},
+					}
+					actionsObj['preset'].bind(instance)(data)
+				} catch (error) {
+					instance.log('error', 'load_preset send error')
+				}
+			},
+		}
+
+
+	actions['preset_pvw'] = {
 		name: 'Select a preset to load to PVW',
 		options: [
 			{
@@ -112,19 +175,24 @@ export const getActions = (instance) => {
 				name: 'Preset',
 				id: 'presetId',
 				default: 1,
-				choices: Object.values(instance.presetList).map((item) => ({
-					id: item.presetId,
-					label: item.general.name,
-				})),
+				choices: Object.entries(instance.presetDefinitionPreset)
+					.filter(([key, value]) => key.includes('pvw'))
+					.map(([key, value]) => ({
+						id: value.presetId,
+						label: value.name,
+					}))
 			},
 		],
 		callback: async (event) => {
 			try {
+				let obj = instance.presetDefinitionPreset[`preset-play-pvw${event.options.presetId}`]
+
+				if (!obj) return
 				let data = {
 					options: {
-						presetId: event.options.presetId,
-						//i: obj.i, why use that not necessary anymore?
-						sceneType: isHttpDevice ? 4 : 0
+						presetId: obj.presetId,
+						i: obj.i,
+						sceneType: 4,
 					},
 				}
 				actionsObj['preset'].bind(instance)(data)
@@ -134,7 +202,7 @@ export const getActions = (instance) => {
 		},
 	}
 
-	actions['presetPgm'] = {
+	actions['preset_pgm'] = {
 		name: 'Load a preset directly to PGM',
 		options: [
 			{
@@ -142,20 +210,24 @@ export const getActions = (instance) => {
 				name: 'Preset',
 				id: 'presetId',
 				default: 1,
-				choices: Object.values(instance.presetList).map((item) => ({
-					id: item.presetId,
-					label: item.general.name,
-				})),
+				choices: Object.entries(instance.presetDefinitionPreset)
+					.filter(([key, value]) => key.includes('pgm'))
+					.map(([key, value]) => ({
+						id: value.presetId,
+						label: value.name,
+					}))
 			},
 		],
 		callback: async (event) => {
-			instance.log('info', JSON.stringify(event))
 			try {
+				let obj = instance.presetDefinitionPreset[`preset-play-pgm${event.options.presetId}`]
+
+				if (!obj) return
 				let data = {
 					options: {
-						presetId: event.options.presetId,
-						//i: obj.i, why use that not necessary anymore?
-						sceneType: isHttpDevice ? 2 : 1,
+						presetId: obj.presetId,
+						i: obj.i,
+						sceneType: 2,
 					},
 				}
 				actionsObj['preset'].bind(instance)(data)
@@ -165,38 +237,38 @@ export const getActions = (instance) => {
 		},
 	}
 
-	actions['screen'] = {
-		name: 'Select/Deselect a screen',
-		options: [
-			{
-				type: 'dropdown',
-				name: 'Screen',
-				id: 'screenId',
-				default: 1,
-				choices: Object.values(instance.presetDefinitionScreen).map((item) => ({
-					id: item.screenId,
-					label: item.name,
-				})),
+		actions['screen'] = {
+			name: 'Select/Deselect a screen',
+			options: [
+				{
+					type: 'dropdown',
+					name: 'Screen',
+					id: 'screenId',
+					default: 1,
+					choices: Object.values(instance.presetDefinitionScreen).map((item) => ({
+						id: item.screenId,
+						label: item.name,
+					})),
+				},
+				{
+					type: 'dropdown',
+					name: 'ScreenSelect',
+					id: 'select',
+					default: '0',
+					choices: [
+						{ id: '0', label: 'Deselect the screen', default: '0' },
+						{ id: '1', label: 'Select the screen', default: '1' },
+					],
+				},
+			],
+			callback: async (event) => {
+				try {
+					actionsObj['screen'].bind(instance)(event)
+				} catch (error) {
+					instance.log('error', 'load_preset send error')
+				}
 			},
-			{
-				type: 'dropdown',
-				name: 'ScreenSelect',
-				id: 'select',
-				default: '0',
-				choices: [
-					{ id: '0', label: 'Deselect the screen', default: '0' },
-					{ id: '1', label: 'Select the screen', default: '1' },
-				],
-			},
-		],
-		callback: async (event) => {
-			try {
-				actionsObj['screen'].bind(instance)(event)
-			} catch (error) {
-				instance.log('error', 'load_preset send error')
-			}
-		},
-	}
+		}
 
 	actions['layer'] = {
 		name: 'Select/Deselect a layer',
@@ -256,37 +328,36 @@ export const getActions = (instance) => {
 		},
 	}
 
-	actions['source'] = {
-		name: 'Change the source for the selected layer',
-		options: [
-			{
-				type: 'dropdown',
-				name: 'Source',
-				id: 'sourceId',
-				default: 1,
-				choices: Object.values(instance.presetDefinitionSource).map((item) => ({
-					id: item.sourceId.toString(),
-					label: item.name,
-				})),
-			},
-		],
-		callback: async (event) => {
-			try {
-				let [sourceType, sourceId] = event.options.sourceId.split('-')
-				let obj = {
-					options: {
-						sourceId: Number(sourceId),
-						sourceType: Number(sourceType),
-					},
+		actions['source'] = {
+			name: 'Change the source for the selected layer',
+			options: [
+				{
+					type: 'dropdown',
+					name: 'Source',
+					id: 'sourceId',
+					default: 1,
+					choices: Object.values(instance.presetDefinitionSource).map((item) => ({
+						id: item.sourceId.toString(),
+						label: item.name,
+					})),
+				},
+			],
+			callback: async (event) => {
+				try {
+					let [sourceType, sourceId] = event.options.sourceId.split('-')
+					let obj = {
+						options: {
+							sourceId: Number(sourceId),
+							sourceType: Number(sourceType),
+						},
+					}
+					actionsObj['source'].bind(instance)(obj)
+				} catch (error) {
+					instance.log('error', 'load_source send error')
 				}
-				actionsObj['source'].bind(instance)(obj)
-			} catch (error) {
-				instance.log('error', 'load_source send error')
-			}
-		},
-	}
+			},
+		}
 
-	if (isHttpDevice) {
 		actions['swapCopy'] = {
 			name: 'Swap between PGM and PVM/Copy PVW to PGM',
 			options: [
