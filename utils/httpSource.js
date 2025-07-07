@@ -2,6 +2,8 @@ import got from 'got'
 import { combineRgb } from '@companion-module/base'
 
 export const getSourceFormatData = (list, instance) => {
+	instance.log('debug', 'Get and parse Source data')
+
 	const playPresets = {}
 	for (let i = 1; i <= list.length; i++) {
 		const item = list[i - 1]
@@ -24,7 +26,7 @@ export const getSourceFormatData = (list, instance) => {
 							options: {
 								sourceId: item.sourceId,
 								sourceType: item.sourceType,
-								relationId: 0, // 与后端沟通，先默认为0
+								relationId: 0, // Communicate with the backend, default to 0
 							},
 						},
 					],
@@ -39,12 +41,12 @@ export const getSourceFormatData = (list, instance) => {
 	return playPresets
 }
 
-// sourceType : 源类型 【 0：空图层 1：无源； 2：输入类型；3：PGM；4：PVW； 5：BKG图片 6：LOGO图片  7：IPC类型8：截取源类型 9:   拼接源 10: ipc拼接屏11: 内置源;  12:内置图形源】
+// sourceType: source type [0: empty layer 1: no source; 2: input type; 3: PGM; 4: PVW; 5: BKG image 6: LOGO image 7: IPC type 8: intercept source type 9: splicing source 10: ipc splicing screen 11: built-in source; 12: built-in graphics source]
 
-// 获取主的输入源
+// Get the main input source
 export const getSourceInput = async (url, token, instance) => {
 	let obj = []
-	instance.log('log', 'Input来了')
+	instance.log('log', 'Input is coming')
 	try {
 		const res = await got
 			.get(`${url}/v1/interface/list-thumb`, {
@@ -61,8 +63,8 @@ export const getSourceInput = async (url, token, instance) => {
 			.json()
 
 		if (res.code === 0) {
-			// 工作模式【0：主模式，1：复制模式，2：禁用模式。】
-			// 展示主模式下的输入源
+			// Working mode [0: master mode, 1: copy mode, 2: disable mode. ]
+			// Display input source in master mode
 			const list = (res.data.list ?? []).filter(
 				(item) =>
 					item?.auxiliaryInfo?.connectorInfo?.interfaceType === 2 && item?.auxiliaryInfo?.connectorInfo?.workMode == 0,
@@ -80,10 +82,10 @@ export const getSourceInput = async (url, token, instance) => {
 	return obj
 }
 
-// 获取屏幕的源
+// Get the source of the screen
 export const getSourceScreen = async (url, token, instance) => {
 	let obj = []
-	instance.log('log', 'Screen来了')
+	instance.log('log', 'Screen is coming')
 	try {
 		const res = await got
 			.get(`${url}/v1/screen/list-detail`, {
@@ -100,8 +102,8 @@ export const getSourceScreen = async (url, token, instance) => {
 			.json()
 
 		if (res.code === 0) {
-			// 屏幕类型：【0：空屏幕；2:普通屏幕;4:AUX屏幕;8:MVR屏幕；16:回显屏幕；32：led屏幕】
-			// 只有普通屏幕能切源
+			// Screen type: [0: empty screen; 2: normal screen; 4: AUX screen; 8: MVR screen; 16: echo screen; 32: LED screen]
+			// Only normal screen can switch source
 			const list = (res.data.list ?? []).filter((item) => item?.screenIdObj.type === 2)
 			list.forEach((item) => {
 				let pgm = {
@@ -117,10 +119,10 @@ export const getSourceScreen = async (url, token, instance) => {
 	return obj
 }
 
-// 获取图片的源
+// Get the source of the image
 export const getSourcePicture = async (url, token, instance) => {
 	let obj = []
-	instance.log('log', '图片的源来了')
+	instance.log('log', 'The source of the picture is here')
 	try {
 		const res = await got
 			.get(`${url}/v1/picture/list`, {
@@ -137,7 +139,7 @@ export const getSourcePicture = async (url, token, instance) => {
 			.json()
 
 		if (res.code === 0) {
-			// 图片类型 1：BKG 2:LOGO 3:OSD 4：时钟 5：内置源
+			// Image type 1: BKG 2: LOGO 3: OSD 4: Clock 5: Built-in source
 			obj = (res.data.list ?? []).map((item) => {
 				return {
 					...item,
@@ -151,7 +153,7 @@ export const getSourcePicture = async (url, token, instance) => {
 	return obj
 }
 
-// 获取截取的源
+// Get the intercepted source
 export const getSourceCrop = async (url, token, instance) => {
 	let obj = []
 	try {
@@ -184,7 +186,7 @@ export const getSourceCrop = async (url, token, instance) => {
 }
 
 export const getSourcePresets = async (url, token, instance) => {
-	instance.log('info', '来了')
+	instance.log('info', 'Here it comes!')
 	const res = await Promise.all([
 		getSourceInput(url, token, instance),
 		getSourceScreen(url, token, instance),

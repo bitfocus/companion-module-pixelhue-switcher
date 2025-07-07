@@ -66,6 +66,71 @@ export const getFeedbacks = (instance) => {
 		},
 	}
 
+	feedbacks['screenSelected'] = {
+		type: 'boolean',
+		name: 'Screen Selected',
+		description: 'Change the style when Screen is selected',
+		defaultStyle: {
+			bgcolor: combineRgb(255, 0, 0),
+		},
+		options: [
+			{
+				id: 'screenId',
+				type: 'dropdown',
+				label: 'Screen',
+				choices: Object.values(instance.presetDefinitionScreen).map((item) => ({
+					id: item.screenId,
+					label: item.name,
+				}))
+			}
+		],
+		callback: (event) => {
+			return instance.selectedScreens.includes(event.options.screenId)
+		}
+	}
+
+	feedbacks['presetState'] = {
+		type: 'boolean',
+		name: 'Preset Selected',
+		description: 'Change the style when Preset is in preview or program',
+		defaultStyle: {
+			bgcolor: combineRgb(0, 0, 0),
+		},
+		options: [
+			{
+				type: 'dropdown',
+				name: 'Preview/Program',
+				id: 'state',
+				default: 'program',
+				choices: [
+					{id: 'program', label: 'Program'},
+					{id: 'preview', label: 'Preview'},
+				]
+			},
+			{
+				type: 'dropdown',
+				name: 'Preset',
+				id: 'presetId',
+				default: 1,
+				choices: Object.entries(instance.presetDefinitionPreset)
+					.filter(([key, value]) => !key.includes('pgm') && !key.includes('pvw'))
+					.map(([key, value]) => ({
+						id: value.presetId,
+						label: value.name,
+					}))
+			},
+		],
+		callback: (event) => {
+			if (event.options.state === 'preview') {
+				return instance.presetStates[event.options.presetId] === 4
+					|| instance.presetStates[event.options.presetId] === 6
+			}
+
+			return instance.presetStates[event.options.presetId] === 2
+				|| instance.presetStates[event.options.presetId] === 6
+		}
+	}
+
 	if (isHttpDevice(instance)) {
 		feedbacks['swapCopy'] = {
 			type: 'boolean',

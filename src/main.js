@@ -39,6 +39,9 @@ class ModuleInstance extends InstanceBase {
 		this.presetDefinitionLayer = {}
 		this.presetDefinitionSource = {}
 
+		this.selectedScreens = []
+		this.presetStates = {}
+
 		// Sort alphabetical
 		this.DEVICES.sort(function (a, b) {
 			var x = a.label.toLowerCase()
@@ -138,10 +141,14 @@ class ModuleInstance extends InstanceBase {
 			clearInterval(this.heartbeat)
 			delete this.heartbeat
 		}
-		// 删除心跳
+		// Delete Heartbeat
 		if (this.presetBeat) {
 			clearInterval(this.presetBeat)
 			delete this.presetBeat
+		}
+		if (this.presetBeat2) {
+			clearInterval(this.presetBeat2)
+			delete this.presetBeat2
 		}
 	}
 
@@ -163,7 +170,7 @@ class ModuleInstance extends InstanceBase {
 				const protocol = ['http', 'https'].includes(deviceProtocol) ? deviceProtocol : 'http'
 				this.log('info', `getDevicesByUCenter-protocol:${protocol}`)
 
-				// 该信息需在server接口header中同步下发
+				// This information needs to be sent synchronously in the server interface header
 				this.config.UCenterFlag = {
 					protocol,
 					ip: '127.0.0.1',
@@ -217,6 +224,7 @@ class ModuleInstance extends InstanceBase {
 			if (HTTP_DEVICES.includes(this.config.modelId)) {
 				this.getAllData()
 				this.presetBeat = setInterval(() => this.getAllData(), 10000) //check every 10s
+				this.presetBeat2 = setInterval(() => this.getRealTimeData(), 1000)
 			}
 		} else if (res.code === 8273) {
 			this.log('info', `getDeviceStatusByOpenDetail-Interface exception: ${JSON.stringify(res)}`)
@@ -280,8 +288,8 @@ class ModuleInstance extends InstanceBase {
 		try {
 			const res = await getScreenPresets(this.config.baseURL, this.config.token, this)
 			if (res.code === 0) {
-				// 屏幕类型：【0：空屏幕；2:普通屏幕;4:AUX屏幕;8:MVR屏幕；16:回显屏幕；32：led屏幕】
-				// 目前只展示普通屏幕
+				// Screen type: [0: empty screen; 2: normal screen; 4: AUX screen; 8: MVR screen; 16: echo screen; 32: LED screen]
+				// Currently only normal screen is displayed
 				obj = (res.data.list ?? []).filter((item) => item.enable == 1)
 			}
 		} catch (e) {}
@@ -291,13 +299,13 @@ class ModuleInstance extends InstanceBase {
 	async getLayerList() {
 		this.log('info', `getLayerList2`)
 		this.config.baseURL = `${this.config.protocol}://${this.config.host}:${this.config.port}/unico`
-		// 由于图层需要拼接
+		// Because the layers need to be stitched
 		let obj = []
 		try {
 			const res = await getLayerPresets(this.config.baseURL, this.config.token, this)
 			if (res.code === 0) {
-				// 源类型 【 0：空图层 1：无源； 2：输入类型；3：PGM；4：PVW； 5：BKG图片 6：LOGO图片  7：IPC类型8：截取源类型 9:   拼接源 10: ipc拼接屏11: 内置源12：内置图形源 13：图片OSD 14:文字OSD】
-				// 空图层不展示
+				// Source type [0: Empty layer 1: Passive; 2: Input type; 3: PGM; 4: PVW; 5: BKG image 6: LOGO image 7: IPC type 8: Intercept source type 9: Splicing source 10: ipc splicing screen 11: Built-in source 12: Built-in graphic source 13: Image OSD 14: Text OSD]
+				// Empty layer is not displayed
 				obj = (res.data.list ?? []).filter((item) => item?.source?.general?.sourceType !== 0)
 			}
 		} catch (e) {}
@@ -307,7 +315,7 @@ class ModuleInstance extends InstanceBase {
 	async getSourceList() {
 		this.log('info', `getLayerList2`)
 		this.config.baseURL = `${this.config.protocol}://${this.config.host}:${this.config.port}/unico`
-		// 由于图层需要拼接
+		// Because the layers need to be stitched
 		let obj = []
 		try {
 			const res = await getSourcePresets(this.config.baseURL, this.config.token, this)
@@ -316,6 +324,25 @@ class ModuleInstance extends InstanceBase {
 			}
 		} catch (e) {}
 		return obj
+	}
+
+	async updateScreens(){
+		const screenList = await this.getScreenList()
+		const screenFilteredList = screenList.filter((item) => item.screenIdObj.type === 2 || item.screenIdObj.type === 4)
+		this.selectedScreens = screenFilteredList.filter((item) => item.select === 1).map((item) => item.screenId)
+		this.checkFeedbacks('screenSelected')
+	}
+
+	async updatePresetStates() {
+		const presetList = await this.getPresetList()
+		presetList.forEach((item) => {
+			this.presetStates[item.presetId] = item.presetIdObj.playType
+		})
+		this.checkFeedbacks('presetState')
+	}
+
+	async getRealTimeData() {
+		await Promise.all([this.updateScreens(), this.updatePresetStates()])
 	}
 
 	async getAllData() {
@@ -332,7 +359,7 @@ class ModuleInstance extends InstanceBase {
 			this.presetDefinitionSource = {}
 			this.presetList = presetList
 
-			// 处理图层的数据
+			// Processing layer data
 			this.presetDefinitionPreset = getPresetFormatData(presetList, this)
 			this.presetDefinitionScreen = getScreenFormatData(screenFilterLiter, this)
 			this.presetDefinitionLayer = getLayerFormatData(layerList, screenList, this)
@@ -556,7 +583,7 @@ class ModuleInstance extends InstanceBase {
 			this.config.model = this.DEVICES[0]
 		}
 
-		// 初始化并再次更新设备恩协议及设备状态
+		// Initialize and re-update the device protocol and device status
 		if (CMD_DEVICES.includes(this.config.modelId)) {
 			this.initUDP()
 			this.initTCP()

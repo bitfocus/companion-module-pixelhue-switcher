@@ -246,7 +246,7 @@ const matchPgm = {
 	feedbacks: [],
 }
 
-// Take Time 旋钮
+// Take Time Knobs
 const takeTime = {
 	type: 'button',
 	category: 'Display',
@@ -345,7 +345,7 @@ const takeTimeRight = {
 	],
 }
 
-// 输出定位开关，按钮文本Mapping
+// Output positioning switch, button text mapping
 const mapping = {
 	type: 'button',
 	name: 'Mapping',
@@ -389,6 +389,7 @@ const mapping = {
 	],
 }
 
+//Bring the selected layer to a position
 const bringTo = {
 	bringFarward: {
 		type: 'button',
@@ -488,7 +489,7 @@ const bringTo = {
 	},
 }
 
-// F系列场景
+// Series F scenes
 const getFseriesPresets = (num) => {
 	const playPresets = {}
 	for (let i = 1; i <= num; i++) {
@@ -524,15 +525,12 @@ const getFseriesPresets = (num) => {
 export const getPresetDefinitions = function (instance) {
 	let basicPresets = {}
 	if (isHttpDevice(instance)) {
-		Object.assign(displayPresets, { swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight }, bringTo)
-
-		basicPresets = { ...displayPresets, swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight }
-
+		basicPresets = { ...displayPresets, swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight, ...bringTo }
 		if (isHttpDeviceWithDQ(instance)) {
 			basicPresets = { ...basicPresets, mapping }
 		}
 	} else {
-		// F系列场景生成
+		// Generation of series F scenes
 		const presetNum = parseInt(DEVICE_PRESETS[instance.config.modelId]) ?? 128
 		const fSeriesPresets = getFseriesPresets(presetNum)
 		basicPresets = { ...displayPresets, ...fSeriesPresets }

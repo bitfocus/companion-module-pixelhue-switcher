@@ -2,6 +2,8 @@ import got from 'got'
 import { combineRgb } from '@companion-module/base'
 
 export const getLayerFormatData = (list, screenList = [], instance) => {
+	instance.log('debug', 'Get and parse Layer data')
+
 	const playPresets = {}
 	for (let i = 1; i <= list.length; i++) {
 		const item = list[i - 1]
