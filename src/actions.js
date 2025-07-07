@@ -9,8 +9,6 @@ import {
 	HTTP_Protocol_Output_Switch,
 	CMD_DEVICES,
 	DEVICE_PRESETS,
-	CMD_DEVICES,
-	DEVICE_PRESETS,
 } from '../utils/constant.js'
 import { cmdActions } from '../utils/cmdActions.js'
 import { httpActions } from '../utils/httpActions.js'
