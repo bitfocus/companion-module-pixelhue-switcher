@@ -100,7 +100,7 @@ export const getPresetCmd = (index, presetTypeVal) => {
 	return cmd
 }
 
-// 首字母及空格后首字母大写
+// Capitalize the first letter and the first letter after the space
 const capitalizeFirstLetter = (str) =>
 	str
 		.split(' ')
