@@ -81,12 +81,12 @@ export const getFeedbacks = (instance) => {
 				choices: Object.values(instance.presetDefinitionScreen).map((item) => ({
 					id: item.screenId,
 					label: item.name,
-				}))
-			}
+				})),
+			},
 		],
 		callback: (event) => {
 			return instance.selectedScreens.includes(event.options.screenId)
-		}
+		},
 	}
 
 	feedbacks['presetState'] = {
@@ -103,9 +103,9 @@ export const getFeedbacks = (instance) => {
 				id: 'state',
 				default: 'program',
 				choices: [
-					{id: 'program', label: 'Program'},
-					{id: 'preview', label: 'Preview'},
-				]
+					{ id: 'program', label: 'Program' },
+					{ id: 'preview', label: 'Preview' },
+				],
 			},
 			{
 				type: 'dropdown',
@@ -117,18 +117,18 @@ export const getFeedbacks = (instance) => {
 					.map(([key, value]) => ({
 						id: value.presetId,
 						label: value.name,
-					}))
+					})),
 			},
 		],
 		callback: (event) => {
 			if (event.options.state === 'preview') {
-				return instance.presetStates[event.options.presetId] === 4
-					|| instance.presetStates[event.options.presetId] === 6
+				return (
+					instance.presetStates[event.options.presetId] === 4 || instance.presetStates[event.options.presetId] === 6
+				)
 			}
 
-			return instance.presetStates[event.options.presetId] === 2
-				|| instance.presetStates[event.options.presetId] === 6
-		}
+			return instance.presetStates[event.options.presetId] === 2 || instance.presetStates[event.options.presetId] === 6
+		},
 	}
 
 	if (isHttpDevice(instance)) {

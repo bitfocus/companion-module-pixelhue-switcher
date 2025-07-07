@@ -326,7 +326,7 @@ class ModuleInstance extends InstanceBase {
 		return obj
 	}
 
-	async updateScreens(){
+	async updateScreens() {
 		const screenList = await this.getScreenList()
 		const screenFilteredList = screenList.filter((item) => item.screenIdObj.type === 2 || item.screenIdObj.type === 4)
 		this.selectedScreens = screenFilteredList.filter((item) => item.select === 1).map((item) => item.screenId)

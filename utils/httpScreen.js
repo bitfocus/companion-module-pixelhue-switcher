@@ -4,7 +4,7 @@ import { combineRgb } from '@companion-module/base'
 export const getScreenFormatData = (list, instance) => {
 	const playPresets = {}
 	instance.log('debug', 'Get and parse Screen data')
-	instance.log('info', 'La La La 11') 
+	instance.log('info', 'La La La 11')
 	instance.log('info', 'screenSelect: ' + JSON.stringify(instance.screenSelect))
 	for (let i = 1; i <= list.length; i++) {
 		const item = list[i - 1]
@@ -26,7 +26,7 @@ export const getScreenFormatData = (list, instance) => {
 							actionId: 'toggleScreen',
 							options: {
 								screenId: item.screenId,
-							}
+							},
 						},
 					],
 				},

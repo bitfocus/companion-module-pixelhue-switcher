@@ -3,7 +3,6 @@ import { combineRgb } from '@companion-module/base'
 import { HTTP_DEVICES } from '../utils/constant.js'
 
 export const getPresetFormatData = (list, instance) => {
-
 	instance.log('debug', 'Get and parse Preset data')
 
 	const modelId = instance.config.modelId
@@ -11,12 +10,12 @@ export const getPresetFormatData = (list, instance) => {
 	const playPresets = {}
 
 	playPresets['label-1'] = {
-      category: `Presets`,
-      name: 'Standard',
-      type: 'text',
-      text: 'This loads the preset with standard picelhue companion code',
-    }
-	
+		category: `Presets`,
+		name: 'Standard',
+		type: 'text',
+		text: 'This loads the preset with standard picelhue companion code',
+	}
+
 	for (let i = 1; i <= list.length; i++) {
 		const item = list[i - 1]
 
@@ -54,11 +53,11 @@ export const getPresetFormatData = (list, instance) => {
 	}
 
 	playPresets['label-2'] = {
-      category: `Presets`,
-      name: 'PVW',
-      type: 'text',
-      text: 'Load the preset to the Preview',
-    };
+		category: `Presets`,
+		name: 'PVW',
+		type: 'text',
+		text: 'Load the preset to the Preview',
+	}
 
 	for (let i = 1; i <= list.length; i++) {
 		const item = list[i - 1]
@@ -117,15 +116,14 @@ export const getPresetFormatData = (list, instance) => {
 			],
 		}
 		playPresets['preset-play-in-pvw' + item.presetId] = pvwPreset
-
 	}
 
 	playPresets['label-3'] = {
-      category: `Presets`,
-      name: 'PGM',
-      type: 'text',
-      text: 'Load the preset directly to the program',
-    }
+		category: `Presets`,
+		name: 'PGM',
+		type: 'text',
+		text: 'Load the preset directly to the program',
+	}
 
 	for (let i = 1; i <= list.length; i++) {
 		const item = list[i - 1]
@@ -149,7 +147,7 @@ export const getPresetFormatData = (list, instance) => {
 						{
 							actionId: 'preset_load_in',
 							options: {
-								loadIn:2,
+								loadIn: 2,
 								presetId: item.presetId,
 								sceneType: item.presetIdObj.sceneType,
 								playType: item.presetIdObj.playType,
@@ -185,8 +183,8 @@ export const getPresetFormatData = (list, instance) => {
 		}
 		playPresets['preset-play-in-pgm' + item.presetId] = pgmPreset
 	}
-	
-	return playPresets;
+
+	return playPresets
 }
 
 export const getDevicePresets = async (url, token, event) => {

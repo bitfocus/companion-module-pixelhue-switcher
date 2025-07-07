@@ -129,7 +129,7 @@ export const getActions = (instance) => {
 			},
 		}
 	}
-	if(isHttpDevice){
+	if (isHttpDevice) {
 		actions['preset'] = {
 			name: 'Select a preset to load',
 			options: [
@@ -139,11 +139,11 @@ export const getActions = (instance) => {
 					id: 'presetId',
 					default: 1,
 					choices: Object.entries(instance.presetDefinitionPreset)
-					.filter(([key, value]) => !key.includes('pgm') && !key.includes('pvw'))
-					.map(([key, value]) => ({
-						id: value.presetId,
-						label: value.name,
-					}))
+						.filter(([key, value]) => !key.includes('pgm') && !key.includes('pvw'))
+						.map(([key, value]) => ({
+							id: value.presetId,
+							label: value.name,
+						})),
 				},
 			],
 			callback: async (event) => {
@@ -165,7 +165,6 @@ export const getActions = (instance) => {
 			},
 		}
 
-
 		actions['preset_load_in'] = {
 			name: 'Select a preset to load in PGM/PVW',
 			options: [
@@ -174,7 +173,10 @@ export const getActions = (instance) => {
 					label: 'Load in',
 					id: 'loadIn',
 					default: 4,
-					choices: [{id: 2, label: 'Program'}, {id: 4, label: 'Preview'}],
+					choices: [
+						{ id: 2, label: 'Program' },
+						{ id: 4, label: 'Preview' },
+					],
 				},
 				{
 					type: 'dropdown',
@@ -186,15 +188,15 @@ export const getActions = (instance) => {
 						.map(([key, value]) => ({
 							id: value.presetId,
 							label: value.name,
-						}))
+						})),
 				},
 			],
 			callback: async (event) => {
 				try {
-					let obj;
-					if(event.options.loadIn == 2) {
+					let obj
+					if (event.options.loadIn == 2) {
 						obj = instance.presetDefinitionPreset[`preset-play-in-pvw${event.options.presetId}`]
-					}else{
+					} else {
 						obj = instance.presetDefinitionPreset[`preset-play-in-pgm${event.options.presetId}`]
 					}
 
