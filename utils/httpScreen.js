@@ -23,29 +23,17 @@ export const getScreenFormatData = (list, instance) => {
 				{
 					down: [
 						{
-							actionId: 'screen',
+							actionId: 'toggleScreen',
 							options: {
-								select: '0',
 								screenId: item.screenId,
-							},
-						},
-					],
-				},
-				{
-					down: [
-						{
-							actionId: 'screen',
-							options: {
-								select: '1',
-								screenId: item.screenId,
-							},
+							}
 						},
 					],
 				},
 			],
 			feedbacks: [
 				{
-					feedbackId: 'screen',
+					feedbackId: 'screenSelected',
 					style: {
 						bgcolor: combineRgb(255, 0, 0),
 					},

@@ -39,6 +39,9 @@ class ModuleInstance extends InstanceBase {
 		this.presetDefinitionLayer = {}
 		this.presetDefinitionSource = {}
 
+		this.selectedScreens = []
+		this.presetStates = {}
+
 		// Sort alphabetical
 		this.DEVICES.sort(function (a, b) {
 			var x = a.label.toLowerCase()
@@ -138,10 +141,14 @@ class ModuleInstance extends InstanceBase {
 			clearInterval(this.heartbeat)
 			delete this.heartbeat
 		}
-		// 删除心跳 //ToDO: Chinese translation
+		// Delete Heartbeat
 		if (this.presetBeat) {
 			clearInterval(this.presetBeat)
 			delete this.presetBeat
+		}
+		if (this.presetBeat2) {
+			clearInterval(this.presetBeat2)
+			delete this.presetBeat2
 		}
 	}
 
@@ -217,6 +224,7 @@ class ModuleInstance extends InstanceBase {
 			if (HTTP_DEVICES.includes(this.config.modelId)) {
 				this.getAllData()
 				this.presetBeat = setInterval(() => this.getAllData(), 10000) //check every 10s
+				this.presetBeat2 = setInterval(() => this.getRealTimeData(), 1000)
 			}
 		} else if (res.code === 8273) {
 			this.log('info', `getDeviceStatusByOpenDetail-Interface exception: ${JSON.stringify(res)}`)
@@ -316,6 +324,25 @@ class ModuleInstance extends InstanceBase {
 			}
 		} catch (e) {}
 		return obj
+	}
+
+	async updateScreens(){
+		const screenList = await this.getScreenList()
+		const screenFilteredList = screenList.filter((item) => item.screenIdObj.type === 2 || item.screenIdObj.type === 4)
+		this.selectedScreens = screenFilteredList.filter((item) => item.select === 1).map((item) => item.screenId)
+		this.checkFeedbacks('screenSelected')
+	}
+
+	async updatePresetStates() {
+		const presetList = await this.getPresetList()
+		presetList.forEach((item) => {
+			this.presetStates[item.presetId] = item.presetIdObj.playType
+		})
+		this.checkFeedbacks('presetState')
+	}
+
+	async getRealTimeData() {
+		await Promise.all([this.updateScreens(), this.updatePresetStates()])
 	}
 
 	async getAllData() {

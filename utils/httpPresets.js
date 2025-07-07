@@ -7,10 +7,16 @@ export const getPresetFormatData = (list, instance) => {
 	instance.log('debug', 'Get and parse Preset data')
 
 	const modelId = instance.config.modelId
-	const isHttpDevice = HTTP_DEVICES.includes(modelId)
 
 	const playPresets = {}
-	const playPgmPresets = {}
+
+	playPresets['label-1'] = {
+      category: `Presets`,
+      name: 'Standard',
+      type: 'text',
+      text: 'This loads the preset with standard picelhue companion code',
+    }
+	
 	for (let i = 1; i <= list.length; i++) {
 		const item = list[i - 1]
 
@@ -45,38 +51,17 @@ export const getPresetFormatData = (list, instance) => {
 			feedbacks: [],
 		}
 		playPresets['preset-play' + item.presetId] = preset
-	
-		const pgmPreset = {
-			type: 'button',
-			category: 'Presets',
-			name: item.general.name,
-			presetId: item.presetId,
-			sceneType: item.presetIdObj.sceneType,
-			i: i,
-			style: {
-				text: item.general.name,
-				size: 'auto',
-				color: combineRgb(255, 255, 255),
-				bgcolor: combineRgb(255, 0, 0),
-			},
-			steps: [
-				{
-					down: [
-						{
-							actionId: 'presetPgm',
-							options: {
-								presetId: item.presetId,
-								sceneType: item.presetIdObj.sceneType,
-								playType: item.presetIdObj.playType,
-								preset: i,
-							},
-						},
-					],
-				},
-			],
-			feedbacks: [],
-		}
-		playPresets['preset-play-pgm' + item.presetId] = pgmPreset
+	}
+
+	playPresets['label-2'] = {
+      category: `Presets`,
+      name: 'PVW',
+      type: 'text',
+      text: 'Load the preset to the Preview',
+    };
+
+	for (let i = 1; i <= list.length; i++) {
+		const item = list[i - 1]
 
 		const pvwPreset = {
 			type: 'button',
@@ -88,15 +73,16 @@ export const getPresetFormatData = (list, instance) => {
 			style: {
 				text: item.general.name,
 				size: 'auto',
-				color: combineRgb(0, 0, 0),
-				bgcolor: combineRgb(0, 255, 0),
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
 			},
 			steps: [
 				{
 					down: [
 						{
-							actionId: 'presetPgm',
+							actionId: 'preset_load_in',
 							options: {
+								loadIn: 4,
 								presetId: item.presetId,
 								sceneType: item.presetIdObj.sceneType,
 								playType: item.presetIdObj.playType,
@@ -106,11 +92,100 @@ export const getPresetFormatData = (list, instance) => {
 					],
 				},
 			],
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'presetState',
+					style: {
+						bgcolor: combineRgb(0, 255, 0),
+						color: combineRgb(0, 0, 0),
+					},
+					options: {
+						state: 'preview',
+						presetId: item.presetId,
+					},
+				},
+				{
+					feedbackId: 'presetState',
+					style: {
+						bgcolor: combineRgb(255, 0, 0),
+					},
+					options: {
+						state: 'program',
+						presetId: item.presetId,
+					},
+				},
+			],
 		}
-		playPresets['preset-play-pvw' + item.presetId] = pvwPreset
+		playPresets['preset-play-in-pvw' + item.presetId] = pvwPreset
 
 	}
+
+	playPresets['label-3'] = {
+      category: `Presets`,
+      name: 'PGM',
+      type: 'text',
+      text: 'Load the preset directly to the program',
+    }
+
+	for (let i = 1; i <= list.length; i++) {
+		const item = list[i - 1]
+
+		const pgmPreset = {
+			type: 'button',
+			category: 'Presets',
+			name: item.general.name,
+			presetId: item.presetId,
+			sceneType: item.presetIdObj.sceneType,
+			i: i,
+			style: {
+				text: item.general.name,
+				size: 'auto',
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'preset_load_in',
+							options: {
+								loadIn:2,
+								presetId: item.presetId,
+								sceneType: item.presetIdObj.sceneType,
+								playType: item.presetIdObj.playType,
+								preset: i,
+							},
+						},
+					],
+				},
+			],
+			feedbacks: [
+				{
+					feedbackId: 'presetState',
+					style: {
+						bgcolor: combineRgb(0, 255, 0),
+						color: combineRgb(0, 0, 0),
+					},
+					options: {
+						state: 'preview',
+						presetId: item.presetId,
+					},
+				},
+				{
+					feedbackId: 'presetState',
+					style: {
+						bgcolor: combineRgb(255, 0, 0),
+					},
+					options: {
+						state: 'program',
+						presetId: item.presetId,
+					},
+				},
+			],
+		}
+		playPresets['preset-play-in-pgm' + item.presetId] = pgmPreset
+	}
+	
 	return playPresets;
 }
 

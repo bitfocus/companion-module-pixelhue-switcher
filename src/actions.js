@@ -167,75 +167,78 @@ export const getActions = (instance) => {
 		}
 
 
-	actions['preset_pvw'] = {
-		name: 'Select a preset to load to PVW',
-		options: [
-			{
-				type: 'dropdown',
-				name: 'Preset',
-				id: 'presetId',
-				default: 1,
-				choices: Object.entries(instance.presetDefinitionPreset)
-					.filter(([key, value]) => key.includes('pvw'))
-					.map(([key, value]) => ({
-						id: value.presetId,
-						label: value.name,
-					}))
-			},
-		],
-		callback: async (event) => {
-			try {
-				let obj = instance.presetDefinitionPreset[`preset-play-pvw${event.options.presetId}`]
+		actions['preset_load_in'] = {
+			name: 'Select a preset to load in PGM/PVW',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Load in',
+					id: 'loadIn',
+					default: 4,
+					choices: [{id: 2, label: 'Program'}, {id: 4, label: 'Preview'}],
+				},
+				{
+					type: 'dropdown',
+					name: 'Preset',
+					id: 'presetId',
+					default: 1,
+					choices: Object.entries(instance.presetDefinitionPreset)
+						.filter(([key, value]) => key.includes('pvw'))
+						.map(([key, value]) => ({
+							id: value.presetId,
+							label: value.name,
+						}))
+				},
+			],
+			callback: async (event) => {
+				try {
+					let obj;
+					if(event.options.loadIn == 2) {
+						obj = instance.presetDefinitionPreset[`preset-play-in-pvw${event.options.presetId}`]
+					}else{
+						obj = instance.presetDefinitionPreset[`preset-play-in-pgm${event.options.presetId}`]
+					}
 
-				if (!obj) return
-				let data = {
-					options: {
-						presetId: obj.presetId,
-						i: obj.i,
-						sceneType: 4,
-					},
+					if (!obj) return
+					let data = {
+						options: {
+							presetId: obj.presetId,
+							i: obj.i,
+							sceneType: event.options.loadIn,
+						},
+					}
+					actionsObj['preset_load_in'].bind(instance)(data)
+				} catch (error) {
+					instance.log('error', 'load_preset_in send error' + error)
 				}
-				actionsObj['preset'].bind(instance)(data)
-			} catch (error) {
-				instance.log('error', 'load_preset send error')
-			}
-		},
-	}
-
-	actions['preset_pgm'] = {
-		name: 'Load a preset directly to PGM',
-		options: [
-			{
-				type: 'dropdown',
-				name: 'Preset',
-				id: 'presetId',
-				default: 1,
-				choices: Object.entries(instance.presetDefinitionPreset)
-					.filter(([key, value]) => key.includes('pgm'))
-					.map(([key, value]) => ({
-						id: value.presetId,
-						label: value.name,
-					}))
 			},
-		],
-		callback: async (event) => {
-			try {
-				let obj = instance.presetDefinitionPreset[`preset-play-pgm${event.options.presetId}`]
+		}
 
-				if (!obj) return
-				let data = {
-					options: {
-						presetId: obj.presetId,
-						i: obj.i,
-						sceneType: 2,
-					},
+		actions['toggleScreen'] = {
+			name: 'Toggle Select a screen',
+			options: [
+				{
+					type: 'dropdown',
+					name: 'Screen',
+					id: 'screenId',
+					default: 1,
+					choices: Object.values(instance.presetDefinitionScreen).map((item) => ({
+						id: item.screenId,
+						label: item.name,
+					})),
+				},
+			],
+			callback: async (event) => {
+				const selected = instance.selectedScreens.includes(event.options.screenId)
+				event.options.select = selected ? '0' : '1'
+				instance.log('info', JSON.stringify(event))
+				try {
+					actionsObj['screen'].bind(instance)(event)
+				} catch (error) {
+					instance.log('error', 'load_preset send error')
 				}
-				actionsObj['preset'].bind(instance)(data)
-			} catch (error) {
-				instance.log('error', 'load_preset send error')
-			}
-		},
-	}
+			},
+		}
 
 		actions['screen'] = {
 			name: 'Select/Deselect a screen',

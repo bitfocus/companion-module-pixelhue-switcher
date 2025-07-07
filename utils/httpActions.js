@@ -428,6 +428,7 @@ export const httpActions = {
 	freeze: handleHttpFreeze,
 	presetType: handleHttpPresetType,
 	preset: handleHttpPreset,
+	preset_load_in: handleHttpPreset,
 	screen: handleHttpScreen,
 	layer: handleHttpLayer,
 	source: handleHttpSource,
