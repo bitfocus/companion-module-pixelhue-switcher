@@ -80,6 +80,7 @@ class ModuleInstance extends InstanceBase {
 				width: 6,
 				default: '192.168.0.10',
 				regex: Regex.IP,
+				require: true,
 			},
 			{
 				type: 'dropdown',
@@ -394,7 +395,7 @@ class ModuleInstance extends InstanceBase {
 				this.updateStatus(status, message)
 			})
 
-			this.socket.on('error', (err) => {
+			this.socket.on('error', async (err) => {
 				this.updateStatus(InstanceStatus.ConnectionFailure)
 				this.log('error', 'Network error: ' + err.message)
 				console.log('TCP Connection error, Try to reconnect.')
@@ -404,7 +405,11 @@ class ModuleInstance extends InstanceBase {
 						0x72, 0x65, 0x71, 0x4e, 0x4f, 0x56, 0x41, 0x53, 0x54, 0x41, 0x52, 0x5f, 0x4c, 0x49, 0x4e, 0x4b, 0x3a, 0x00,
 						0x00, 0x03, 0xfe, 0xff,
 					]) // Port FFFE
-					this.udp.send(cmd_connect)
+					try {
+						await this.udp.send(cmd_connect)
+					} catch (e) {
+						this.log('debug', 'UDP send error: ' + e)
+					}
 				} else {
 					this.initUDP()
 				}
@@ -431,7 +436,7 @@ class ModuleInstance extends InstanceBase {
 		}
 	}
 
-	initUDP() {
+	async initUDP() {
 		if (this.udp !== undefined) {
 			this.udp.destroy()
 			delete this.udp
@@ -465,7 +470,11 @@ class ModuleInstance extends InstanceBase {
 				0x72, 0x65, 0x71, 0x4e, 0x4f, 0x56, 0x41, 0x53, 0x54, 0x41, 0x52, 0x5f, 0x4c, 0x49, 0x4e, 0x4b, 0x3a, 0x00,
 				0x00, 0x03, 0xfe, 0xff,
 			])
-			this.udp.send(cmd_register)
+			try {
+				await this.udp.send(cmd_register)
+			} catch (e) {
+				this.log('debug', 'UDP send error: ' + e)
+			}
 			this.log('info', 'UDP registration.')
 		}
 	}
@@ -495,6 +504,7 @@ class ModuleInstance extends InstanceBase {
 			...config,
 			model: this.DEVICES_INFO[config.modelId],
 		}
+		this.updateDefaultInfo.bind(this)()
 
 		if (HTTP_DEVICES.includes(this.config.modelId)) {
 			this.log('info', 'http configUpdated handle...')
