@@ -230,7 +230,6 @@ async function getLayersSourceReq(token, event) {
 	return res
 }
 
-
 async function setBringTo(token, event) {
 	let layerId = -1
 	for (let key in this.layerSelect) {
@@ -248,7 +247,7 @@ async function setBringTo(token, event) {
 			layerId: Number(layerId),
 			zorder: {
 				type: 1,
-				para: Number(event.options.bringId)
+				para: Number(event.options.bringId),
 			},
 		},
 	]
@@ -273,7 +272,6 @@ async function setBringTo(token, event) {
 
 	return res
 }
-
 
 async function setSwapCopyReq(token, event) {
 	this.config.swapCopy = event.options.swapCopy

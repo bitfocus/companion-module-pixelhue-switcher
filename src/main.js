@@ -167,7 +167,7 @@ class ModuleInstance extends InstanceBase {
 				this.config.UCenterFlag = {
 					protocol,
 					ip: '127.0.0.1',
-					port: device.SN.includes('virtual') ? device.protocols[0].port : '8088' //Changed here to work with Simulator via PixelFlow
+					port: device.SN.includes('virtual') ? device.protocols[0].port : '8088', //Changed here to work with Simulator via PixelFlow
 				}
 				await this.getDeviceStatusByOpenDetail()
 				this.getGlobalSwitchEffect()
@@ -181,7 +181,7 @@ class ModuleInstance extends InstanceBase {
 	async getDeviceStatusByPWD() {
 		this.config.baseURL = `${this.config.protocol}://${this.config.host}:${this.config.port}/unico`
 
-		this.log('info', `getDeviceStatusByPWD-url:${this.config.baseURL} - ${ new Date().toString}`)
+		this.log('info', `getDeviceStatusByPWD-url:${this.config.baseURL} - ${new Date().toString}`)
 		this.log('info', `tokenInfo:${this.config.username}/${this.config.password}`)
 
 		const res = await getToken(this.config.baseURL, {
@@ -567,7 +567,7 @@ class ModuleInstance extends InstanceBase {
 					setTimeout(() => {
 						this.log('info', 'promise-race-5...')
 						resolve()
-					}, 5000)
+					}, 5000),
 				),
 				this.getDevicesByUCenter(),
 			])

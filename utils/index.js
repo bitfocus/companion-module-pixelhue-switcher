@@ -94,7 +94,7 @@ export const getPresetCmd = (index, presetTypeVal) => {
 		cmd_part_sum.length
 	let cmd = Buffer.concat(
 		[cmd_part1, cmd_part_len, cmd_part2, cmd_part_xx, cmd_part3, cmd_part4, cmd_part5, cmd_part_sum],
-		totalBytes
+		totalBytes,
 	)
 
 	return cmd

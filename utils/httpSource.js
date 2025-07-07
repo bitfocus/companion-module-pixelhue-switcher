@@ -65,7 +65,7 @@ export const getSourceInput = async (url, token, instance) => {
 			// 展示主模式下的输入源
 			const list = (res.data.list ?? []).filter(
 				(item) =>
-					item?.auxiliaryInfo?.connectorInfo?.interfaceType === 2 && item?.auxiliaryInfo?.connectorInfo?.workMode == 0
+					item?.auxiliaryInfo?.connectorInfo?.interfaceType === 2 && item?.auxiliaryInfo?.connectorInfo?.workMode == 0,
 			)
 			obj = list.map((item) => {
 				return {

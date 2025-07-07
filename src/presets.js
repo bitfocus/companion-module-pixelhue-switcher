@@ -389,7 +389,6 @@ const mapping = {
 	],
 }
 
-
 const bringTo = {
 	bringFarward: {
 		type: 'button',
@@ -407,7 +406,7 @@ const bringTo = {
 					{
 						actionId: 'bring_to',
 						options: {
-							bringId: 1
+							bringId: 1,
 						},
 					},
 				],
@@ -431,7 +430,7 @@ const bringTo = {
 					{
 						actionId: 'bring_to',
 						options: {
-							bringId: 2
+							bringId: 2,
 						},
 					},
 				],
@@ -455,7 +454,7 @@ const bringTo = {
 					{
 						actionId: 'bring_to',
 						options: {
-							bringId: 3
+							bringId: 3,
 						},
 					},
 				],
@@ -479,7 +478,7 @@ const bringTo = {
 					{
 						actionId: 'bring_to',
 						options: {
-							bringId: 4
+							bringId: 4,
 						},
 					},
 				],
@@ -487,7 +486,7 @@ const bringTo = {
 		],
 		feedbacks: [],
 	},
-	
+}
 
 // F系列场景
 const getFseriesPresets = (num) => {
@@ -520,13 +519,11 @@ const getFseriesPresets = (num) => {
 		playPresets['preset-play' + i] = preset
 	}
 	return playPresets
-
 }
 
 export const getPresetDefinitions = function (instance) {
 	let basicPresets = {}
 	if (isHttpDevice(instance)) {
-
 		Object.assign(displayPresets, { swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight }, bringTo)
 
 		basicPresets = { ...displayPresets, swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight }

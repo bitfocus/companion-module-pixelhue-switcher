@@ -4,7 +4,7 @@
   "main": "./src/main.js",
   "type": "module",
   "scripts": {
-    "format": "prettier -w ."
+    "format": "yarn dlx prettier -w ."
   },
   "license": "MIT",
   "repository": {
@@ -21,5 +21,6 @@
   "devDependencies": {
     "@companion-module/tools": "^1.4.1"
   },
-  "prettier": "@companion-module/tools/.prettierrc.json"
+  "prettier": "@companion-module/tools/.prettierrc.json",
+  "packageManager": "yarn@4.9.2"
 }
