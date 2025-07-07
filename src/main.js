@@ -33,6 +33,7 @@ class ModuleInstance extends InstanceBase {
 
 		this.screenSelect = {}
 		this.layerSelect = {}
+		this.presetList = {}
 		this.presetDefinitionPreset = {}
 		this.presetDefinitionScreen = {}
 		this.presetDefinitionLayer = {}
@@ -166,12 +167,13 @@ class ModuleInstance extends InstanceBase {
 				this.config.UCenterFlag = {
 					protocol,
 					ip: '127.0.0.1',
-					port: '8088',
+					port: device.SN.includes('virtual') ? device.protocols[0].port : '8088' //Changed here to work with Simulator via PixelFlow
 				}
 				await this.getDeviceStatusByOpenDetail()
 				this.getGlobalSwitchEffect()
 			}
 		} catch (e) {
+			this.log('error', `getDeviceByUCenter Error: ${e.toString()}`)
 			await this.getProtocol()
 		}
 	}
@@ -179,7 +181,7 @@ class ModuleInstance extends InstanceBase {
 	async getDeviceStatusByPWD() {
 		this.config.baseURL = `${this.config.protocol}://${this.config.host}:${this.config.port}/unico`
 
-		this.log('info', `getDeviceStatusByPWD-url:${this.config.baseURL} - ${new Date().getTime()}`)
+		this.log('info', `getDeviceStatusByPWD-url:${this.config.baseURL} - ${ new Date().toString}`)
 		this.log('info', `tokenInfo:${this.config.username}/${this.config.password}`)
 
 		const res = await getToken(this.config.baseURL, {
@@ -202,7 +204,7 @@ class ModuleInstance extends InstanceBase {
 
 	async getDeviceStatusByOpenDetail() {
 		this.config.baseURL = `${this.config.protocol}://${this.config.host}:${this.config.port}/unico`
-		this.log('info', `getDeviceStatusByOpenDetail-url:${this.config.baseURL} - ${new Date().getTime()}`)
+		this.log('info', `getDeviceStatusByOpenDetail-url:${this.config.baseURL} - ${new Date().toString()}`)
 
 		const res = await getOpenDetail(this.config.baseURL, this.config.UCenterFlag)
 		this.log('info', `getDeviceStatusByOpenDetail-res:${JSON.stringify(res)}`)
@@ -237,7 +239,7 @@ class ModuleInstance extends InstanceBase {
 
 	async getProtocol() {
 		this.log('info', 'getProtocol')
-		this.config.port = 8088
+		this.config.port = 19998
 		const func = this.config.isOldVersion ? this.getDeviceStatusByPWD : this.getDeviceStatusByOpenDetail
 		try {
 			try {
@@ -328,9 +330,10 @@ class ModuleInstance extends InstanceBase {
 			this.presetDefinitionScreen = {}
 			this.presetDefinitionLayer = {}
 			this.presetDefinitionSource = {}
+			this.presetList = presetList
 
 			// 处理图层的数据
-			this.presetDefinitionPreset = getPresetFormatData(presetList)
+			this.presetDefinitionPreset = getPresetFormatData(presetList, this)
 			this.presetDefinitionScreen = getScreenFormatData(screenFilterLiter, this)
 			this.presetDefinitionLayer = getLayerFormatData(layerList, screenList, this)
 			this.presetDefinitionSource = getSourceFormatData(sourceList, this)

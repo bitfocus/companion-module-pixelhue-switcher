@@ -389,6 +389,106 @@ const mapping = {
 	],
 }
 
+
+const bringTo = {
+	bringFarward: {
+		type: 'button',
+		category: 'Layers',
+		name: 'Bring Farward',
+		style: {
+			text: 'Bring Farward',
+			size: '14',
+			color: combineRgb(255, 255, 255),
+			bgcolor: combineRgb(128, 128, 255),
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'bring_to',
+						options: {
+							bringId: 1
+						},
+					},
+				],
+			},
+		],
+		feedbacks: [],
+	},
+	bringBackward: {
+		type: 'button',
+		category: 'Layers',
+		name: 'Bring Backward',
+		style: {
+			text: 'Bring Backward',
+			size: '14',
+			color: combineRgb(255, 255, 255),
+			bgcolor: combineRgb(128, 128, 255),
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'bring_to',
+						options: {
+							bringId: 2
+						},
+					},
+				],
+			},
+		],
+		feedbacks: [],
+	},
+	bringToFront: {
+		type: 'button',
+		category: 'Layers',
+		name: 'Bring To Front',
+		style: {
+			text: 'Bring To Front',
+			size: '14',
+			color: combineRgb(255, 255, 255),
+			bgcolor: combineRgb(128, 128, 255),
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'bring_to',
+						options: {
+							bringId: 3
+						},
+					},
+				],
+			},
+		],
+		feedbacks: [],
+	},
+	bringToBack: {
+		type: 'button',
+		category: 'Layers',
+		name: 'Bring To Back',
+		style: {
+			text: 'Bring To Back',
+			size: '14',
+			color: combineRgb(255, 255, 255),
+			bgcolor: combineRgb(128, 128, 255),
+		},
+		steps: [
+			{
+				down: [
+					{
+						actionId: 'bring_to',
+						options: {
+							bringId: 4
+						},
+					},
+				],
+			},
+		],
+		feedbacks: [],
+	},
+	
+
 // F系列场景
 const getFseriesPresets = (num) => {
 	const playPresets = {}
@@ -420,12 +520,17 @@ const getFseriesPresets = (num) => {
 		playPresets['preset-play' + i] = preset
 	}
 	return playPresets
+
 }
 
 export const getPresetDefinitions = function (instance) {
 	let basicPresets = {}
 	if (isHttpDevice(instance)) {
+
+		Object.assign(displayPresets, { swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight }, bringTo)
+
 		basicPresets = { ...displayPresets, swapCopy, matchPgm, takeTime, takeTimeLeft, takeTimeRight }
+
 		if (isHttpDeviceWithDQ(instance)) {
 			basicPresets = { ...basicPresets, mapping }
 		}
