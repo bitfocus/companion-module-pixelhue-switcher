@@ -1087,9 +1087,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"companion-module-pixelhue-switcher-new@workspace:.":
+"companion-module-pixelhue-switcher@workspace:.":
   version: 0.0.0-use.local
-  resolution: "companion-module-pixelhue-switcher-new@workspace:."
+  resolution: "companion-module-pixelhue-switcher@workspace:."
   dependencies:
     "@companion-module/base": "npm:^1.12.1"
     "@companion-module/tools": "npm:^2.3.0"
