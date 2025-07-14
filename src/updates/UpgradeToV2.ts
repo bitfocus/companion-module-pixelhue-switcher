@@ -1,8 +1,11 @@
 import { CompanionStaticUpgradeResult, CompanionStaticUpgradeScript } from '@companion-module/base'
-import { ModuleConfig } from '../config.js'
+import { ModuleConfig } from '../Config.js'
 import { LoadIn } from '../interfaces/Preset.js'
 
-export const upgradeToV2_0_0: CompanionStaticUpgradeScript<ModuleConfig> = (_context, props): CompanionStaticUpgradeResult<ModuleConfig> => {
+export const upgradeToV2_0_0: CompanionStaticUpgradeScript<ModuleConfig> = (
+	_context,
+	props,
+): CompanionStaticUpgradeResult<ModuleConfig> => {
 	const actions = props.actions
 	const feedbacks = props.feedbacks
 

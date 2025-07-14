@@ -1,28 +1,40 @@
 import got from 'got'
-import { generateToken } from './utils.js'
-import { ModuleInstance } from './main.js'
-import { ScreenListDetailData } from './interfaces/Screen.js'
-import { PresetListDetailData } from './interfaces/Preset.js'
-import { SwapStateData } from './interfaces/Swap.js'
-import { Response } from './interfaces/Response.js'
-import { Layer, LayerListDetailData } from './interfaces/Layer.js'
-import * as console from 'node:console'
+import { generateToken } from '../utils/utils.js'
+import { ModuleInstance } from '../main.js'
+import { ScreenListDetailData } from '../interfaces/Screen.js'
+import { PresetListDetailData } from '../interfaces/Preset.js'
+import { SwapStateData } from '../interfaces/Swap.js'
+import { Response } from '../interfaces/Response.js'
+import { Layer, LayerListDetailData } from '../interfaces/Layer.js'
+import { HttpClient } from './HttpClient.js'
 
-export class APIClient {
+export class ApiClient {
+	http: HttpClient | null = null
 	host: string | null = null
 	apiPort: number | null = null
 	unicoPort = 19998
 
 	token: string | null = null
 
+	private constructor() {}
+
+	static async create(instance: ModuleInstance, host: string): Promise<ApiClient> {
+		const client = new ApiClient()
+		client.host = host
+		await client.setup(instance)
+		return client
+	}
+
 	async setup(instance: ModuleInstance): Promise<void> {
 		const devices = await this._getDeviceList()
 		this.apiPort = [...devices.data.list[0].protocols].find((protocol: any) => protocol.linkType === 'http').port
+		this.http = new HttpClient(this.host!, this.apiPort!)
 
 		const openDetail = await this._getDeviceOpenDetail()
 		const serialNumber = openDetail.data.sn
 		const startTime = openDetail.data.startTime
 		this.token = generateToken(serialNumber, startTime)
+		this.http.setToken(this.token)
 
 		const screenResponse = await this.getScreens()
 		const presetResponse = await this.getPresets()
@@ -59,14 +71,7 @@ export class APIClient {
 			},
 		}
 
-		return got
-			.put(`http://${this.host}:${this.apiPort}/unico/v1/screen/selected/take`, {
-				headers: {
-					Authorization: this.token!,
-				},
-				json: body,
-			})
-			.json()
+		return this.http!.put('/unico/v1/screen/selected/take', body)
 	}
 
 	async cut(direction: number = 0): Promise<any> {
@@ -74,14 +79,7 @@ export class APIClient {
 			direction: +direction || 0,
 		}
 
-		return got
-			.put(`http://${this.host}:${this.apiPort}/unico/v1/screen/selected/cut`, {
-				headers: {
-					Authorization: this.token!,
-				},
-				json: body,
-			})
-			.json()
+		return this.http!.put('/unico/v1/screen/selected/cut', body)
 	}
 
 	async ftb(enable: boolean, time: number): Promise<any> {
@@ -92,14 +90,7 @@ export class APIClient {
 			},
 		}
 
-		return got
-			.put(`http://${this.host}:${this.apiPort}/unico/v1/screen/selected/ftb`, {
-				headers: {
-					Authorization: this.token!,
-				},
-				json: body,
-			})
-			.json()
+		return this.http!.put('/unico/v1/screen/selected/ftb', body)
 	}
 
 	async freeze(enable: boolean): Promise<any> {
@@ -107,14 +98,7 @@ export class APIClient {
 			freeze: enable ? 1 : 0,
 		}
 
-		return got
-			.put(`http://${this.host}:${this.apiPort}/unico/v1/screen/selected/freeze`, {
-				headers: {
-					Authorization: this.token!,
-				},
-				json: body,
-			})
-			.json()
+		return this.http!.put('/unico/v1/screen/selected/freeze', body)
 	}
 
 	async swap(enable: boolean): Promise<any> {
@@ -122,14 +106,7 @@ export class APIClient {
 			enable: enable ? 1 : 0,
 		}
 
-		return got
-			.put(`http://${this.host}:${this.apiPort}/unico/v1/screen/global/swap`, {
-				headers: {
-					Authorization: this.token!,
-				},
-				json: body,
-			})
-			.json()
+		return this.http!.put('/unico/v1/screen/global/swap', body)
 	}
 
 	async loadPreset(presetId: number, sceneType: number): Promise<any> {
@@ -138,14 +115,7 @@ export class APIClient {
 			presetId,
 		}
 
-		return got
-			.put(`http://${this.host}:${this.apiPort}/unico/v1/preset/play`, {
-				headers: {
-					Authorization: this.token!,
-				},
-				json: body,
-			})
-			.json()
+		return this.http!.put('/unico/v1/preset/play', body)
 	}
 
 	async selectScreen(screenId: number, selected: boolean): Promise<any> {
@@ -156,14 +126,7 @@ export class APIClient {
 			},
 		]
 
-		return got
-			.put(`http://${this.host}:${this.apiPort}/unico/v1/screen/select`, {
-				headers: {
-					Authorization: this.token!,
-				},
-				json: body,
-			})
-			.json()
+		return this.http!.put('/unico/v1/screen/select', body)
 	}
 
 	async selectLayer(layerId: number, otherLayers: Layer[]): Promise<any> {
@@ -184,16 +147,7 @@ export class APIClient {
 				}),
 		]
 
-		console.log(body)
-
-		return got
-			.put(`http://${this.host}:${this.apiPort}/unico/v1/layers/select`, {
-				headers: {
-					Authorization: this.token!,
-				},
-				json: body,
-			})
-			.json()
+		return this.http!.put('/unico/v1/layers/select', body)
 	}
 
 	async bringSelectedTo(layerId: number, to: number): Promise<any> {
@@ -207,14 +161,7 @@ export class APIClient {
 			},
 		]
 
-		return got
-			.put(`http://${this.host}:${this.apiPort}/unico/v1/layers/zorder`, {
-				headers: {
-					Authorization: this.token!,
-				},
-				json: body,
-			})
-			.json()
+		return this.http!.put('/unico/v1/layers/zorder', body)
 	}
 
 	async setEffectTime(time: number): Promise<any> {
@@ -225,53 +172,22 @@ export class APIClient {
 			},
 		}
 
-		return got
-			.put(`http://${this.host}:${this.apiPort}/unico/v1/screen/global/switch-effect`, {
-				headers: {
-					Authorization: this.token!,
-				},
-				json: body,
-			})
-			.json()
+		return this.http!.put('/unico/v1/screen/global/switch-effect', body)
 	}
 
 	async getScreens(): Promise<Response<ScreenListDetailData>> {
-		return got
-			.get(`http://${this.host}:${this.apiPort}/unico/v1/screen/list-detail`, {
-				headers: {
-					Authorization: this.token!,
-				},
-			})
-			.json()
+		return this.http!.get('/unico/v1/screen/list-detail')
 	}
 
 	async getPresets(): Promise<Response<PresetListDetailData>> {
-		return got
-			.get(`http://${this.host}:${this.apiPort}/unico/v1/preset/list-detail`, {
-				headers: {
-					Authorization: this.token!,
-				},
-			})
-			.json()
+		return this.http!.get('/unico/v1/preset/list-detail')
 	}
 
 	async getSwapState(): Promise<Response<SwapStateData>> {
-		return got
-			.get(`http://${this.host}:${this.apiPort}/unico/v1/screen/global/swap`, {
-				headers: {
-					Authorization: this.token!,
-				},
-			})
-			.json()
+		return this.http!.get('/unico/v1/screen/global/swap')
 	}
 
 	async getLayers(): Promise<Response<LayerListDetailData>> {
-		return got
-			.get(`http://${this.host}:${this.apiPort}/unico/v1/layers/list-detail`, {
-				headers: {
-					Authorization: this.token!,
-				},
-			})
-			.json()
+		return this.http!.get('/unico/v1/layers/list-detail')
 	}
 }
