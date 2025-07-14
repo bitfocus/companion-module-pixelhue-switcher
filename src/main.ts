@@ -5,15 +5,15 @@ import {
 	runEntrypoint,
 	SomeCompanionConfigField,
 } from '@companion-module/base'
-import { GetConfigFields, type ModuleConfig } from './Config.js'
-import { updateCompanionVariableDefinitions } from './Variables.js'
-import { UpgradeScripts } from './Upgrades.js'
-import { updateCompanionActions } from './Actions.js'
-import { updateCompanionFeedbacks } from './Feedbacks.js'
+import { GetConfigFields, type ModuleConfig } from './config.js'
+import { updateCompanionVariableDefinitions } from './variables.js'
+import { UpgradeScripts } from './upgrades.js'
+import { updateCompanionActions } from './actions.js'
+import { updateCompanionFeedbacks } from './feedbacks.js'
 import { ApiClient } from './services/ApiClient.js'
 import { Screen } from './interfaces/Screen.js'
 import { LoadIn, Preset } from './interfaces/Preset.js'
-import { updateCompanionPresets } from './Presets.js'
+import { updateCompanionPresets } from './presets.js'
 import { Layer } from './interfaces/Layer.js'
 import { WebSocketClient } from './services/WebSocketClient.js'
 

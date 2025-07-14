@@ -1,5 +1,5 @@
 import { CompanionStaticUpgradeResult, CompanionStaticUpgradeScript } from '@companion-module/base'
-import { ModuleConfig } from '../Config.js'
+import { ModuleConfig } from '../config.js'
 import { LoadIn } from '../interfaces/Preset.js'
 
 export const upgradeToV2_0_0: CompanionStaticUpgradeScript<ModuleConfig> = (
