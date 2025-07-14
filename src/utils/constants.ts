@@ -2,9 +2,9 @@ export const PRESET_CATEGORY = {
 	SCREENS: 'Screens',
 	PRESETS: 'Presets',
 	LAYERS: 'Layers',
-	GLOBAL: 'Global',
+	GLOBAL: 'Presets',
 	CONTROL: 'Control',
-	PREVIEW: 'Preview',
-	PROGRAM: 'Program',
+	PREVIEW: 'Presets in Preview',
+	PROGRAM: 'Presets in Program',
 	DISPLAY: 'Display',
 } as const
