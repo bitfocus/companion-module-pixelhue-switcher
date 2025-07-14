@@ -1,7 +1,7 @@
 import type { ModuleInstance } from './main.js'
 import { CompanionVariableDefinition } from '@companion-module/base'
 
-export function UpdateVariableDefinitions(self: ModuleInstance): void {
+export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 	const presetVariableDefinitions: CompanionVariableDefinition[] = self.presets.map((preset) => {
 		return {
 			variableId: `preset_${preset.keyPosition[0]}_name`,

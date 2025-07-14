@@ -30,6 +30,7 @@
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.3.0",
+		"@types/jest": "^30.0.0",
 		"@types/jsonwebtoken": "^9",
 		"@types/node": "^22.14.1",
 		"@types/ws": "^8",

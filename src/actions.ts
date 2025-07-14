@@ -2,7 +2,7 @@ import type { ModuleInstance } from './main.js'
 import { DropdownChoice } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
 
-export function UpdateActions(self: ModuleInstance): void {
+export function updateCompanionActions(self: ModuleInstance): void {
 	self.setActionDefinitions({
 		take: {
 			name: 'TAKE',

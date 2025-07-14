@@ -6,23 +6,21 @@ import {
 	SomeCompanionConfigField,
 } from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig } from './config.js'
-import { UpdateVariableDefinitions } from './variables.js'
+import { updateCompanionVariableDefinitions } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
-import { UpdateActions } from './actions.js'
-import { UpdateFeedbacks } from './feedbacks.js'
-import { APIClient } from './APIClient.js'
+import { updateCompanionActions } from './actions.js'
+import { updateCompanionFeedbacks } from './feedbacks.js'
+import { ApiClient } from './services/ApiClient.js'
 import { Screen } from './interfaces/Screen.js'
-import { WebSocket } from 'ws'
-import { parseWebsocketMessage } from './utils.js'
 import { LoadIn, Preset } from './interfaces/Preset.js'
-import { UpdatePresets } from './presets.js'
+import { updateCompanionPresets } from './presets.js'
 import { Layer } from './interfaces/Layer.js'
-import { webSocketHandlers } from './WebSocketHandling.js'
+import { WebSocketClient } from './services/WebSocketClient.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig // Setup in init()
-	apiClient: APIClient | null = null
-	webSocket: WebSocket | null = null
+	apiClient: ApiClient | null = null
+	webSocket: WebSocketClient | null = null
 
 	screens: Screen[] = []
 	presets: Preset[] = []
@@ -60,16 +58,9 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			return
 		}
 
-		this.apiClient = new APIClient()
-		this.apiClient.host = config.host
 		try {
-			await this.apiClient.setup(this)
-			this.webSocket = new WebSocket(`wss://${config.host}:19998/unico/v1/ucenter/ws?client-type=8`, {
-				headers: {
-					Authorization: this.apiClient.token!,
-				},
-				rejectUnauthorized: false,
-			})
+			this.apiClient = await ApiClient.create(this, this.config.host)
+			this.webSocket = await WebSocketClient.create(this, this.config.host, this.apiClient.token!)
 
 			this.updateActions() // export actions
 			this.updateFeedbacks() // export feedbacks
@@ -78,15 +69,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.updateVariableValues()
 
 			this.updateStatus(InstanceStatus.Ok)
-
-			this.webSocket.on('message', this.messageReceived.bind(this))
-			this.webSocket.on('error', () => {
-				this.error()
-			})
-			this.webSocket.on('close', () => {
-				this.error()
-			})
-		} catch {
+		} catch (err) {
+			this.log('error', `Initialization failed: ${err instanceof Error ? err.message : String(err)}`)
 			this.error()
 			return
 		}
@@ -103,10 +87,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	cleanup(): void {
 		this.apiClient = null
-		if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
-			this.webSocket.close()
+		if (this.webSocket) {
+			this.webSocket.disconnect()
+			this.webSocket = null
 		}
-		this.webSocket = null
 
 		this.setActionDefinitions({})
 		this.setFeedbackDefinitions({})
@@ -120,19 +104,19 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	updateActions(): void {
-		UpdateActions(this)
+		updateCompanionActions(this)
 	}
 
 	updateFeedbacks(): void {
-		UpdateFeedbacks(this)
+		updateCompanionFeedbacks(this)
 	}
 
 	updateVariableDefinitions(): void {
-		UpdateVariableDefinitions(this)
+		updateCompanionVariableDefinitions(this)
 	}
 
 	updatePresets(): void {
-		UpdatePresets(this)
+		updateCompanionPresets(this)
 	}
 
 	updateVariableValues(): void {
@@ -157,21 +141,6 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			...presetVariables,
 			...screenVariables,
 		})
-	}
-
-	messageReceived(data: WebSocket.RawData): void {
-		if (!(data instanceof Buffer)) return
-
-		const parsedMessage = parseWebsocketMessage(Buffer.from(data))
-		if (
-			Object.keys(webSocketHandlers)
-				.map(Number)
-				.find((handlerId) => {
-					return handlerId == parsedMessage.type
-				})
-		) {
-			webSocketHandlers[parsedMessage.type](this, parsedMessage)
-		}
 	}
 }
 
