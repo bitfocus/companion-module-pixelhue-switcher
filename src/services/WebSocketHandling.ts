@@ -1,6 +1,6 @@
 import { ModuleInstance } from '../main.js'
 import { LayerSelection } from '../interfaces/Layer.js'
-import { Screen, ScreenListDetailData, ScreenSelectionData } from '../interfaces/Screen.js'
+import { Screen, ScreenListDetailData, ScreenSelectionData, UpdateLayoutData } from '../interfaces/Screen.js'
 import { Preset, PresetListDetailData } from '../interfaces/Preset.js'
 import { WebsocketCallbackData } from '../interfaces/WebsocketCallbackData.js'
 import { realMerge } from '../utils/utils.js'
@@ -19,6 +19,8 @@ export const MessageTypes = {
 	globalFtbChanged: 0x71206,
 	globalFreezeChanged: 0x71207,
 	createScreen: 0x7111f,
+	layerPresetCreated: 0x81302,
+	layoutUpdated: 0xa2107,
 }
 
 export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message: WebsocketCallbackData) => void } = {
@@ -34,6 +36,8 @@ export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message:
 	[MessageTypes.presetCreated]: presetCreated,
 	[MessageTypes.globalFreezeChanged]: globalFreezeChanged,
 	[MessageTypes.globalFtbChanged]: globalFtbChanged,
+	[MessageTypes.layerPresetCreated]: layerPresetCreated,
+	//[MessageTypes.layoutUpdated]: layoutUpdated,
 }
 
 export function layersSelected(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -127,4 +131,26 @@ export function globalFtbChanged(self: ModuleInstance, message: WebsocketCallbac
 export function globalFreezeChanged(self: ModuleInstance, message: WebsocketCallbackData): void {
 	self.globalFreeze = message.data.freeze
 	self.checkFeedbacks('globalFreezeState')
+}
+
+export function layerPresetCreated(self: ModuleInstance, message: WebsocketCallbackData): void {
+	self.layerPresets.push(...message.data)
+}
+
+export function layoutUpdated(self: ModuleInstance, message: WebsocketCallbackData): void {
+	const data: UpdateLayoutData = message.data
+
+	updateScreens(self, data.selectScreens)
+
+	data.deleteLayers.forEach((layerToDelete) => {
+		const index = self.layers.findIndex((layer) => {
+			return layer.layerId === layerToDelete.layerId
+		})
+
+		if (index > -1) {
+			self.layers.splice(index, 1)
+		}
+	})
+
+	self.layers.push(...data.createLayers)
 }

@@ -7,6 +7,7 @@ import { SwapStateData } from '../interfaces/Swap.js'
 import { Response } from '../interfaces/Response.js'
 import { Layer, LayerListDetailData } from '../interfaces/Layer.js'
 import { HttpClient } from './HttpClient.js'
+import { LayerPreset, LayerPresetListDetailData } from '../interfaces/LayerPreset.js'
 
 export class ApiClient {
 	http: HttpClient | null = null
@@ -40,11 +41,13 @@ export class ApiClient {
 		const presetResponse = await this.getPresets()
 		const swapStateResponse = await this.getSwapState()
 		const layerResponse = await this.getLayers()
+		const layerPresetsResponse = await this.getLayerPresets()
 
 		instance.screens = screenResponse.data.list
 		instance.presets = presetResponse.data.list
 		instance.swapEnabled = swapStateResponse.data.enable === 1
 		instance.layers = layerResponse.data.list
+		instance.layerPresets = layerPresetsResponse.data.list
 	}
 
 	async _getDeviceOpenDetail(): Promise<any> {
@@ -175,6 +178,17 @@ export class ApiClient {
 		return this.http!.put('/unico/v1/screen/global/switch-effect', body)
 	}
 
+	async applyLayerPreset(layerId: number, layerPreset: LayerPreset): Promise<any> {
+		const body = [
+			{
+				layerIds: [{ layerId }],
+				layerPreset: layerPreset,
+			},
+		]
+
+		return this.http!.put('/unico/v1/layers/layer-preset/apply', body)
+	}
+
 	async getScreens(): Promise<Response<ScreenListDetailData>> {
 		return this.http!.get('/unico/v1/screen/list-detail')
 	}
@@ -189,5 +203,9 @@ export class ApiClient {
 
 	async getLayers(): Promise<Response<LayerListDetailData>> {
 		return this.http!.get('/unico/v1/layers/list-detail')
+	}
+
+	async getLayerPresets(): Promise<Response<LayerPresetListDetailData>> {
+		return this.http!.get('/unico/v1/layers/layer-preset/list-detail')
 	}
 }

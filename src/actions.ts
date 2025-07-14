@@ -1,6 +1,7 @@
 import type { ModuleInstance } from './main.js'
 import { DropdownChoice } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
+import { getLayerBySelection, getLayerSelectionOptions } from './actionUtils.js'
 
 export function updateCompanionActions(self: ModuleInstance): void {
 	self.setActionDefinitions({
@@ -367,6 +368,39 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					await self.apiClient?.setEffectTime(parseInt(parsedTime))
 				} catch {
 					self.log('error', 'take send error')
+				}
+			},
+		},
+		applyLayerPreset: {
+			name: 'Apply layer preset',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Layer Preset',
+					id: 'layerPresetId',
+					default: 1,
+					choices: self.layerPresets.map((layerPreset): DropdownChoice => {
+						return {
+							id: layerPreset.layerPresetId,
+							label: layerPreset.general.name,
+						}
+					}),
+				},
+				...getLayerSelectionOptions(self),
+			],
+			callback: async (event, context) => {
+				try {
+					const layer = await getLayerBySelection(self, event, context)
+					const layerPreset = self.layerPresets.find((layerPreset) => {
+						return layerPreset.layerPresetId === event.options.layerPresetId
+					})
+
+					if (layer === undefined || layerPreset === undefined) return
+
+					await self.apiClient?.applyLayerPreset(layer.layerId, layerPreset)
+				} catch (error: any) {
+					self.log('error', 'applyLayerPreset send error')
+					self.log('error', error)
 				}
 			},
 		},

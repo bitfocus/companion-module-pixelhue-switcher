@@ -12,6 +12,7 @@ export interface Layer {
 	layerId: number
 	general: LayerGeneral
 	selected: 0 | 1
+	serial: number
 	layerIdObj: LayerIdObj
 }
 

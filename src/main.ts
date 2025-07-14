@@ -16,6 +16,7 @@ import { LoadIn, Preset } from './interfaces/Preset.js'
 import { updateCompanionPresets } from './presets.js'
 import { Layer } from './interfaces/Layer.js'
 import { WebSocketClient } from './services/WebSocketClient.js'
+import { LayerPreset } from './interfaces/LayerPreset.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig // Setup in init()
@@ -25,6 +26,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	screens: Screen[] = []
 	presets: Preset[] = []
 	layers: Layer[] = []
+	layerPresets: LayerPreset[] = []
 	swapEnabled: boolean = false
 	retryTimeout: NodeJS.Timeout | null = null
 
