@@ -85,7 +85,6 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						ftb = self.globalFtb !== 1
 					}
 					await self.apiClient?.ftb(ftb, 700)
-					self.globalFtb = ftb ? 1 : 0
 				} catch {
 					self.log('error', 'FTB send error')
 				}
@@ -133,7 +132,6 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						freeze = self.globalFreeze !== 1
 					}
 					await self.apiClient?.freeze(freeze)
-					self.globalFreeze = freeze ? 1 : 0
 				} catch {
 					self.log('error', 'FTB send error')
 				}

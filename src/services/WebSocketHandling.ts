@@ -14,10 +14,10 @@ export const MessageTypes = {
 	presetNamesChanged: 0xa2105,
 	swapUpdated: 0x71201,
 	presetCreated: 0xa2101,
-	selectedScreenFreeze: 0x71207,
-	selectedScreenFtb: 0x71206,
-	freezeChanged: 0x71113,
-	ftbChanged: 0x71114,
+	selectedScreenFreeze: 0x71113,
+	selectedScreenFtb: 0x71114,
+	globalFtbChanged: 0x71206,
+	globalFreezeChanged: 0x71207,
 	createScreen: 0x7111f,
 }
 
@@ -25,13 +25,15 @@ export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message:
 	[MessageTypes.layersSelected]: layersSelected,
 	//[MessageTypes.screensUpdated]: screensUpdated,
 	[MessageTypes.screenNamesChanged]: screenPropertiesChanged,
-	[MessageTypes.freezeChanged]: screenPropertiesChanged,
-	[MessageTypes.ftbChanged]: screenPropertiesChanged,
+	[MessageTypes.selectedScreenFreeze]: screenPropertiesChanged,
+	[MessageTypes.selectedScreenFtb]: screenPropertiesChanged,
 	[MessageTypes.screensSelected]: screensSelected,
 	[MessageTypes.presetsUpdated]: presetsUpdated,
 	[MessageTypes.presetNamesChanged]: presetNamesChanged,
 	[MessageTypes.swapUpdated]: swapUpdated,
 	[MessageTypes.presetCreated]: presetCreated,
+	[MessageTypes.globalFreezeChanged]: globalFreezeChanged,
+	[MessageTypes.globalFtbChanged]: globalFtbChanged,
 }
 
 export function layersSelected(self: ModuleInstance, message: WebsocketCallbackData): void {
