@@ -1,17 +1,11 @@
-import {
-	CompanionVariableValues,
-	InstanceBase,
-	InstanceStatus,
-	runEntrypoint,
-	SomeCompanionConfigField,
-} from '@companion-module/base'
+import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField } from '@companion-module/base'
 import { GetConfigFields, type ModuleConfig } from './config.js'
-import { updateCompanionVariableDefinitions } from './variables.js'
+import { updateCompanionVariableDefinitions, updateVariableValues } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
 import { updateCompanionActions } from './actions.js'
 import { updateCompanionFeedbacks } from './feedbacks.js'
 import { ApiClient } from './services/ApiClient.js'
-import { Screen, SCREEN_TYPE } from './interfaces/Screen.js'
+import { Screen } from './interfaces/Screen.js'
 import { LoadIn, Preset } from './interfaces/Preset.js'
 import { updateCompanionPresets } from './presets.js'
 import { Layer } from './interfaces/Layer.js'
@@ -122,52 +116,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	updateVariableValues(): void {
-		const presetVariables: CompanionVariableValues = {}
-		this.presets.forEach((preset) => {
-			presetVariables[`preset_${preset.keyPosition[0]}_name`] = preset.general.name
-		})
-
-		const screenVariables: CompanionVariableValues = {}
-		this.screens.forEach((screen) => {
-			screenVariables[`screen_${screen.screenId}_name`] = screen.general.name
-			screenVariables[`screen_${screen.screenId}_freeze`] = screen.freeze === 1
-			screenVariables[`screen_${screen.screenId}_ftb`] = screen.ftb.enable === 1
-		})
-
-		const layerVariables: CompanionVariableValues = {}
-		this.layers.forEach((layer) => {
-			const mvrScreen = this.screens.find((screen) => {
-				return screen.screenIdObj.type === SCREEN_TYPE.MVR
-			})
-			const where =
-				layer.layerIdObj.attachScreenId === mvrScreen?.screenId
-					? 'mvr'
-					: layer.layerIdObj.sceneType === LoadIn.preview
-						? 'pvw'
-						: 'pgm'
-			let baseVariableId: string
-			if (layer.layerIdObj.attachScreenId === mvrScreen?.screenId) {
-				baseVariableId = `layer_${layer.serial}_${where}`
-			} else {
-				baseVariableId = `layer_${layer.serial}_${where}_screen_${layer.layerIdObj.attachScreenId}`
-			}
-
-			layerVariables[`${baseVariableId}_x`] = layer.window.x
-			layerVariables[`${baseVariableId}_y`] = layer.window.y
-			layerVariables[`${baseVariableId}_width`] = layer.window.width
-			layerVariables[`${baseVariableId}_height`] = layer.window.height
-		})
-
-		this.setVariableValues({
-			global_load_in: this.globalLoadPresetIn === LoadIn.preview ? 'Preview' : 'Program',
-			global_load_in_short: this.globalLoadPresetIn === LoadIn.preview ? 'PVW' : 'PGM',
-			global_load_in_program: this.globalLoadPresetIn === LoadIn.program,
-			global_load_in_preview: this.globalLoadPresetIn === LoadIn.preview,
-			take_action: this.swapEnabled ? 'Swap' : 'Copy',
-			selected_layer: selectedLayer?.layerId,
-			...presetVariables,
-			...screenVariables,
-		})
+		updateVariableValues(this)
 	}
 }
 
