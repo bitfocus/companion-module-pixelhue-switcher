@@ -15,18 +15,25 @@ export function getLayerSelectionOptions(
 ): SomeCompanionActionInputField[] {
 	return [
 		{
+			type: 'checkbox',
+			label: 'Use selected layer',
+			id: 'useSelected',
+			default: false,
+		},
+		{
 			type: 'textinput',
 			label: 'Layer No.',
 			id: 'layerNumber',
 			required: true,
 			default: '1',
 			useVariables: true,
+			isVisibleExpression: '$(options:useSelected) == false',
 		},
 		{
 			type: 'dropdown',
 			label: 'Screen',
 			id: 'screenId',
-			default: 0,
+			default: self.screens[0].screenId,
 			choices: self.screens
 				.filter((screen) => {
 					return allowedScreenTypes.includes(screen.screenIdObj.type)
@@ -37,6 +44,7 @@ export function getLayerSelectionOptions(
 						label: screen.general.name,
 					}
 				}),
+			isVisibleExpression: '$(options:useSelected) == false',
 		},
 		{
 			type: 'dropdown',
@@ -53,6 +61,7 @@ export function getLayerSelectionOptions(
 					label: 'Program',
 				},
 			],
+			isVisibleExpression: '$(options:useSelected) == false',
 		},
 	]
 }
@@ -65,11 +74,17 @@ export async function getLayerBySelection(
 	const parsedLayerNumber = parseInt(await context.parseVariablesInString(<string>event.options.layerNumber))
 	if (isNaN(parsedLayerNumber)) return undefined
 
-	return self.layers.find((layer) => {
-		return (
-			layer.layerIdObj.attachScreenId === event.options.screenId &&
-			layer.serial === parsedLayerNumber &&
-			layer.layerIdObj.sceneType === event.options.where
-		)
-	})
+	if (event.options.useSelected) {
+		return self.layers.find((layer) => {
+			return layer.selected === 1
+		})
+	} else {
+		return self.layers.find((layer) => {
+			return (
+				layer.layerIdObj.attachScreenId === event.options.screenId &&
+				layer.serial === parsedLayerNumber &&
+				layer.layerIdObj.sceneType === event.options.where
+			)
+		})
+	}
 }
