@@ -2,6 +2,7 @@ import type { ModuleInstance } from './main.js'
 import { DropdownChoice } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
 import { getLayerBySelection, getLayerSelectionOptions } from './actionUtils.js'
+import { LayerBounds } from './interfaces/Layer.js'
 
 export function updateCompanionActions(self: ModuleInstance): void {
 	self.setActionDefinitions({
@@ -400,6 +401,59 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					await self.apiClient?.applyLayerPreset(layer.layerId, layerPreset)
 				} catch (error: any) {
 					self.log('error', 'applyLayerPreset send error')
+					self.log('error', error)
+				}
+			},
+		},
+		changeLayerBounds: {
+			name: 'Move and resize layer',
+			options: [
+				{
+					type: 'textinput',
+					label: 'X',
+					id: 'x',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Y',
+					id: 'y',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Width',
+					id: 'width',
+					useVariables: true,
+				},
+				{
+					type: 'textinput',
+					label: 'Height',
+					id: 'height',
+					useVariables: true,
+				},
+				...getLayerSelectionOptions(self),
+			],
+			callback: async (event, context) => {
+				try {
+					const layer = await getLayerBySelection(self, event, context)
+					const x = parseInt(await context.parseVariablesInString(<string>event.options.x))
+					const y = parseInt(await context.parseVariablesInString(<string>event.options.y))
+					const width = parseInt(await context.parseVariablesInString(<string>event.options.width))
+					const height = parseInt(await context.parseVariablesInString(<string>event.options.height))
+
+					const layerBounds: LayerBounds = {
+						x,
+						y,
+						width,
+						height,
+					}
+
+					if (layer === undefined) return
+
+					await self.apiClient?.applyLayerBounds(layer.layerId, layerBounds)
+				} catch (error: any) {
+					self.log('error', 'applyLayerBounds send error')
 					self.log('error', error)
 				}
 			},

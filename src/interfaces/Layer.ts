@@ -14,6 +14,7 @@ export interface Layer {
 	selected: 0 | 1
 	serial: number
 	layerIdObj: LayerIdObj
+	window: LayerBounds
 }
 
 export interface LayerIdObj {
@@ -23,4 +24,11 @@ export interface LayerIdObj {
 
 export interface LayerGeneral {
 	name: string
+}
+
+export interface LayerBounds {
+	width: number
+	height: number
+	x: number
+	y: number
 }

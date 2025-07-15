@@ -1,5 +1,5 @@
 import { ModuleInstance } from '../main.js'
-import { LayerSelection } from '../interfaces/Layer.js'
+import { Layer, LayerSelection } from '../interfaces/Layer.js'
 import { Screen, ScreenListDetailData, ScreenSelectionData, UpdateLayoutData } from '../interfaces/Screen.js'
 import { Preset, PresetListDetailData } from '../interfaces/Preset.js'
 import { WebsocketCallbackData } from '../interfaces/WebsocketCallbackData.js'
@@ -21,6 +21,7 @@ export const MessageTypes = {
 	createScreen: 0x7111f,
 	layerPresetCreated: 0x81302,
 	layoutUpdated: 0xa2107,
+	layerMoved: 0x8110b,
 }
 
 export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message: WebsocketCallbackData) => void } = {
@@ -37,7 +38,8 @@ export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message:
 	[MessageTypes.globalFreezeChanged]: globalFreezeChanged,
 	[MessageTypes.globalFtbChanged]: globalFtbChanged,
 	[MessageTypes.layerPresetCreated]: layerPresetCreated,
-	//[MessageTypes.layoutUpdated]: layoutUpdated,
+	[MessageTypes.layoutUpdated]: layoutUpdated,
+	[MessageTypes.layerMoved]: layerMoved,
 }
 
 export function layersSelected(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -49,6 +51,8 @@ export function layersSelected(self: ModuleInstance, message: WebsocketCallbackD
 
 		layer.selected = layerSelection.selected
 	})
+
+	self.updateVariableValues()
 }
 
 export function screensUpdated(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -153,4 +157,19 @@ export function layoutUpdated(self: ModuleInstance, message: WebsocketCallbackDa
 	})
 
 	self.layers.push(...data.createLayers)
+}
+
+export function layerMoved(self: ModuleInstance, message: WebsocketCallbackData): void {
+	const newLayerBounds: Layer[] = message.data
+	newLayerBounds.forEach((newLayerBound) => {
+		const layer = self.layers.find((layer) => {
+			return layer.layerId === newLayerBound.layerId
+		})
+
+		if (!layer) return
+
+		layer.window = newLayerBound.window
+	})
+
+	self.updateVariableValues()
 }

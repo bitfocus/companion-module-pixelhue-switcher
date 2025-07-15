@@ -1,5 +1,7 @@
 import type { ModuleInstance } from './main.js'
 import { CompanionVariableDefinition } from '@companion-module/base'
+import { LoadIn } from './interfaces/Preset.js'
+import { SCREEN_TYPE } from './interfaces/Screen.js'
 
 export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 	const presetVariableDefinitions: CompanionVariableDefinition[] = self.presets.map((preset) => {
@@ -30,6 +32,48 @@ export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 		}
 	})
 
+	const layersVariableDefinitions = self.layers.flatMap((layer) => {
+		const mvrScreen = self.screens.find((screen) => {
+			return screen.screenIdObj.type === SCREEN_TYPE.MVR
+		})
+		const where =
+			layer.layerIdObj.attachScreenId === mvrScreen?.screenId
+				? 'mvr'
+				: layer.layerIdObj.sceneType === LoadIn.preview
+					? 'pvw'
+					: 'pgm'
+		const whereText = where.toUpperCase()
+
+		let baseVariableId: string
+		let baseName: string
+		if (layer.layerIdObj.attachScreenId === mvrScreen?.screenId) {
+			baseVariableId = `layer_${layer.serial}_${where}`
+			baseName = `Layer L${layer.serial} on ${whereText}`
+		} else {
+			baseVariableId = `layer_${layer.serial}_${where}_screen_${layer.layerIdObj.attachScreenId}`
+			baseName = `Layer L${layer.serial} on ${whereText} Screen ${layer.layerIdObj.attachScreenId}`
+		}
+
+		return [
+			{
+				variableId: `${baseVariableId}_x`,
+				name: `${baseName}: X`,
+			},
+			{
+				variableId: `${baseVariableId}_y`,
+				name: `${baseName}: Y`,
+			},
+			{
+				variableId: `${baseVariableId}_width`,
+				name: `${baseName}: Width`,
+			},
+			{
+				variableId: `${baseVariableId}_height`,
+				name: `${baseName}: Height`,
+			},
+		]
+	})
+
 	self.setVariableDefinitions([
 		{ variableId: 'global_load_in', name: 'Global Preset Load In' },
 		{ variableId: 'global_load_in_short', name: 'Global Preset Load In (Short Name)' },
@@ -40,5 +84,6 @@ export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 		...screensNameVariableDefinitions,
 		...screensFreezeVariableDefinitions,
 		...screensFtbVariableDefinitions,
+		...layersVariableDefinitions,
 	])
 }

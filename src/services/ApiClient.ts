@@ -5,7 +5,7 @@ import { ScreenListDetailData } from '../interfaces/Screen.js'
 import { PresetListDetailData } from '../interfaces/Preset.js'
 import { SwapStateData } from '../interfaces/Swap.js'
 import { Response } from '../interfaces/Response.js'
-import { Layer, LayerListDetailData } from '../interfaces/Layer.js'
+import { Layer, LayerBounds, LayerListDetailData } from '../interfaces/Layer.js'
 import { HttpClient } from './HttpClient.js'
 import { LayerPreset, LayerPresetListDetailData } from '../interfaces/LayerPreset.js'
 
@@ -187,6 +187,17 @@ export class ApiClient {
 		]
 
 		return this.http!.put('/unico/v1/layers/layer-preset/apply', body)
+	}
+
+	async applyLayerBounds(layerId: number, bounds: LayerBounds): Promise<any> {
+		const body = [
+			{
+				layerId,
+				window: bounds,
+			},
+		]
+
+		return this.http!.put('/unico/v1/layers/window', body)
 	}
 
 	async getScreens(): Promise<Response<ScreenListDetailData>> {
