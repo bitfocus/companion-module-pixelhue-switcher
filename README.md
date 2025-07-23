@@ -3,7 +3,7 @@
 A Companion module for controlling Pixelhue Switcher devices.  
 Provides actions, feedbacks, and presets for seamless integration with your broadcast workflow.
 
-See [HELP.md](./companion/HELP.md), [CHANGELOG](./CHANGELOG) and [LICENSE](./LICENSE)
+See [HELP.md](./companion/HELP.md), [CHANGELOG](./CHANGELOG.md) and [LICENSE](./LICENSE)
 
 ## Features
 
