@@ -53,6 +53,7 @@ export function layersSelected(self: ModuleInstance, message: WebsocketCallbackD
 	})
 
 	self.updateVariableValues()
+	self.checkFeedbacks('selectedLayerState')
 }
 
 export function screensUpdated(self: ModuleInstance, message: WebsocketCallbackData): void {
