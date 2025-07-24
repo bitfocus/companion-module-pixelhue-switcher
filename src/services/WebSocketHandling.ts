@@ -23,6 +23,7 @@ export const MessageTypes = {
 	layoutUpdated: 0xa2107,
 	layerMoved: 0x8110b,
 	umdUpdated: 0x81113,
+	layerGeneralUpdated: 0x81109,
 }
 
 export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message: WebsocketCallbackData) => void } = {
@@ -42,6 +43,7 @@ export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message:
 	[MessageTypes.layoutUpdated]: layoutUpdated,
 	[MessageTypes.layerMoved]: layerMoved,
 	[MessageTypes.umdUpdated]: umdUpdated,
+	[MessageTypes.layerGeneralUpdated]: layerGeneralUpdated,
 }
 
 export function layersSelected(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -186,6 +188,21 @@ export function umdUpdated(self: ModuleInstance, message: WebsocketCallbackData)
 		if (!layer) return
 
 		layer.UMD = newLayerUMD.umd
+	})
+
+	self.updateVariableValues()
+}
+
+export function layerGeneralUpdated(self: ModuleInstance, message: WebsocketCallbackData): void {
+	const newLayersGeneral: any[] = message.data
+	newLayersGeneral.forEach((newLayerGeneral) => {
+		const layer = self.layers.find((layer) => {
+			return layer.layerId === newLayerGeneral.layerId
+		})
+
+		if (!layer) return
+
+		layer.general = newLayerGeneral.general
 	})
 
 	self.updateVariableValues()
