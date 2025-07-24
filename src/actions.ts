@@ -379,7 +379,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					type: 'dropdown',
 					label: 'Layer Preset',
 					id: 'layerPresetId',
-					default: 1,
+					default: self.screens[0].screenId,
 					choices: self.layerPresets.map((layerPreset): DropdownChoice => {
 						return {
 							id: layerPreset.layerPresetId,
