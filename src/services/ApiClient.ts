@@ -5,7 +5,7 @@ import { ScreenListDetailData } from '../interfaces/Screen.js'
 import { PresetListDetailData } from '../interfaces/Preset.js'
 import { SwapStateData } from '../interfaces/Swap.js'
 import { Response } from '../interfaces/Response.js'
-import { Layer, LayerBounds, LayerListDetailData } from '../interfaces/Layer.js'
+import { Layer, LayerBounds, LayerListDetailData, LayerUMD } from '../interfaces/Layer.js'
 import { HttpClient } from './HttpClient.js'
 import { LayerPreset, LayerPresetListDetailData } from '../interfaces/LayerPreset.js'
 
@@ -198,6 +198,17 @@ export class ApiClient {
 		]
 
 		return this.http!.put('/unico/v1/layers/window', body)
+	}
+
+	async applyUMD(layerId: number, umd: LayerUMD[]): Promise<any> {
+		const body = [
+			{
+				layerId,
+				UMD: umd,
+			},
+		]
+
+		return this.http!.put('/unico/v1/layers/umd', body)
 	}
 
 	async getScreens(): Promise<Response<ScreenListDetailData>> {
