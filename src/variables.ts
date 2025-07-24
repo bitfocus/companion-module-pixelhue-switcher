@@ -109,8 +109,6 @@ export function updateVariableValues(self: ModuleInstance): void {
 		return layer.selected === 1
 	})
 
-	console.log(JSON.stringify(selectedLayer, null, 2))
-
 	self.setVariableValues({
 		global_load_in: self.globalLoadPresetIn === LoadIn.preview ? 'Preview' : 'Program',
 		global_load_in_short: self.globalLoadPresetIn === LoadIn.preview ? 'PVW' : 'PGM',
