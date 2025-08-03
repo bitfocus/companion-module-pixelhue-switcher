@@ -2,6 +2,7 @@ import { combineRgb } from '@companion-module/base'
 import type { ModuleInstance } from './main.js'
 import { LoadIn } from './interfaces/Preset.js'
 import { DropdownChoice } from '@companion-module/base'
+import { SCREEN_TYPE } from './interfaces/Screen.js'
 
 export function updateCompanionFeedbacks(self: ModuleInstance): void {
 	self.setFeedbackDefinitions({
@@ -204,6 +205,42 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 			options: [],
 			callback: () => {
 				return self.globalFreeze === 1
+			},
+		},
+		selectedLayerState: {
+			name: 'Selected Layer State',
+			type: 'boolean',
+			defaultStyle: {
+				bgcolor: combineRgb(255, 0, 0),
+				color: combineRgb(255, 255, 255),
+			},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Layer',
+					id: 'layerId',
+					default: 1,
+					choices: self.layers
+						.filter(
+							(layer) =>
+								layer.general.name !== '' &&
+								layer.layerIdObj.attachScreenId !==
+									self.screens.find((s) => s.screenIdObj.type === SCREEN_TYPE.MVR)?.screenId,
+						)
+						.map((layer): DropdownChoice => {
+							const screenName =
+								self.screens.find((screen) => screen.screenId === layer.layerIdObj.attachScreenId)?.general?.name ?? ''
+							const sceneType = layer.layerIdObj.sceneType === 2 ? 'PGM' : layer.layerIdObj.sceneType === 4 ? 'PVW' : ''
+
+							return {
+								id: layer.layerId,
+								label: `${screenName} -  [L${layer.serial}] ${sceneType} ${layer.general.name}`,
+							}
+						}),
+				},
+			],
+			callback: (feedback) => {
+				return self.getVariableValue('selected_layer') === feedback.options.layerId
 			},
 		},
 	})

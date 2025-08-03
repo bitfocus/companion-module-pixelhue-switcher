@@ -106,7 +106,10 @@ export function updateVariableValues(self: ModuleInstance): void {
 	})
 
 	const selectedLayer = self.layers.find((layer) => {
-		return layer.selected === 1
+		return (
+			layer.selected === 1 &&
+			layer.layerIdObj.attachScreenId !== self.screens.find((s) => s.screenIdObj.type === SCREEN_TYPE.MVR)?.screenId
+		)
 	})
 
 	self.setVariableValues({
