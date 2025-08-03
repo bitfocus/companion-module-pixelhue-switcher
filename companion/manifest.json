@@ -3,7 +3,7 @@
 	"name": "pixelhue-switcher",
 	"shortname": "pixelhue",
 	"description": "Companion module for Pixelhue Switcher Devices",
-	"version": "2.0.3",
+	"version": "0.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-pixelhue-switcher.git",
 	"bugs": "https://github.com/bitfocus/companion-module-pixelhue-switcher/issues",

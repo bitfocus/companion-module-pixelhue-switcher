@@ -2,8 +2,9 @@ import type { ModuleInstance } from './main.js'
 import { DropdownChoice } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
 import { getLayerBySelection, getLayerSelectionOptions } from './actionUtils.js'
-import { LayerBounds } from './interfaces/Layer.js'
 import { SCREEN_TYPE } from './interfaces/Screen.js'
+import { LayerBounds, LayerUMD } from './interfaces/Layer.js'
+
 
 export function updateCompanionActions(self: ModuleInstance): void {
 	self.setActionDefinitions({
@@ -391,7 +392,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					type: 'dropdown',
 					label: 'Layer Preset',
 					id: 'layerPresetId',
-					default: 1,
+					default: self.screens[0].screenId,
 					choices: self.layerPresets.map((layerPreset): DropdownChoice => {
 						return {
 							id: layerPreset.layerPresetId,
@@ -466,6 +467,57 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					await self.apiClient?.applyLayerBounds(layer.layerId, layerBounds)
 				} catch (error: any) {
 					self.log('error', 'applyLayerBounds send error')
+					self.log('error', error)
+				}
+			},
+		},
+		toggleUmd: {
+			name: 'Toggle UMD on Layer',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'layerId',
+					label: 'Layer',
+					default: 0,
+					choices: self.layers
+						.filter((layer) => {
+							const screen = self.screens.find((screen) => {
+								return screen.screenId === layer.layerIdObj.attachScreenId
+							})
+							return screen?.screenIdObj.type === 8
+						})
+						.map((layer): DropdownChoice => {
+							const screen = self.screens.find((screen) => {
+								return screen.screenId === layer.layerIdObj.attachScreenId
+							})
+
+							return {
+								id: layer.layerId,
+								label: `${screen?.general.name} - ${layer.source.general.sourceName}`,
+							}
+						}),
+				},
+			],
+			callback: async (event) => {
+				try {
+					const layer = self.layers.find((layer) => {
+						return layer.layerId === event.options.layerId
+					})
+
+					if (layer === undefined) return
+
+					const umd = layer.UMD.map((umd): LayerUMD => {
+						return {
+							...umd,
+							enable: umd.enable === 1 ? 0 : 1,
+						}
+					})
+
+					console.log(umd)
+
+					await self.apiClient?.applyUMD(layer.layerId, umd)
+				} catch (error: any) {
+					self.log('error', 'toggleUmd send error')
 					self.log('error', error)
 				}
 			},

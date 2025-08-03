@@ -2,6 +2,7 @@ import type { ModuleInstance } from './main.js'
 import { CompanionVariableDefinition, CompanionVariableValues } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
 import { SCREEN_TYPE } from './interfaces/Screen.js'
+import { Layer } from './interfaces/Layer.js'
 
 export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 	const presetVariableDefinitions: CompanionVariableDefinition[] = self.presets.map((preset) => {
@@ -33,26 +34,8 @@ export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 	})
 
 	const layersVariableDefinitions = self.layers.flatMap((layer) => {
-		const mvrScreen = self.screens.find((screen) => {
-			return screen.screenIdObj.type === SCREEN_TYPE.MVR
-		})
-		const where =
-			layer.layerIdObj.attachScreenId === mvrScreen?.screenId
-				? 'mvr'
-				: layer.layerIdObj.sceneType === LoadIn.preview
-					? 'pvw'
-					: 'pgm'
-		const whereText = where.toUpperCase()
-
-		let baseVariableId: string
-		let baseName: string
-		if (layer.layerIdObj.attachScreenId === mvrScreen?.screenId) {
-			baseVariableId = `layer_${layer.serial}_${where}`
-			baseName = `Layer L${layer.serial} on ${whereText}`
-		} else {
-			baseVariableId = `layer_${layer.serial}_${where}_screen_${layer.layerIdObj.attachScreenId}`
-			baseName = `Layer L${layer.serial} on ${whereText} Screen ${layer.layerIdObj.attachScreenId}`
-		}
+		const baseVariableId = getLayerVariableId(self, layer)
+		const baseName = getLayerVariableName(self, layer)
 
 		return [
 			{
@@ -70,6 +53,10 @@ export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 			{
 				variableId: `${baseVariableId}_height`,
 				name: `${baseName}: Height`,
+			},
+			{
+				variableId: `${baseVariableId}_source`,
+				name: `${baseName}: Source`,
 			},
 		]
 	})
@@ -109,26 +96,13 @@ export function updateVariableValues(self: ModuleInstance): void {
 
 	const layerVariables: CompanionVariableValues = {}
 	self.layers.forEach((layer) => {
-		const mvrScreen = self.screens.find((screen) => {
-			return screen.screenIdObj.type === SCREEN_TYPE.MVR
-		})
-		const where =
-			layer.layerIdObj.attachScreenId === mvrScreen?.screenId
-				? 'mvr'
-				: layer.layerIdObj.sceneType === LoadIn.preview
-					? 'pvw'
-					: 'pgm'
-		let baseVariableId: string
-		if (layer.layerIdObj.attachScreenId === mvrScreen?.screenId) {
-			baseVariableId = `layer_${layer.serial}_${where}`
-		} else {
-			baseVariableId = `layer_${layer.serial}_${where}_screen_${layer.layerIdObj.attachScreenId}`
-		}
+		const baseVariableId = getLayerVariableId(self, layer)
 
 		layerVariables[`${baseVariableId}_x`] = layer.window.x
 		layerVariables[`${baseVariableId}_y`] = layer.window.y
 		layerVariables[`${baseVariableId}_width`] = layer.window.width
 		layerVariables[`${baseVariableId}_height`] = layer.window.height
+		layerVariables[`${baseVariableId}_source`] = layer.source.general.sourceName
 	})
 
 	const selectedLayer = self.layers.find((layer) => {
@@ -145,12 +119,47 @@ export function updateVariableValues(self: ModuleInstance): void {
 		global_load_in_preview: self.globalLoadPresetIn === LoadIn.preview,
 		take_action: self.swapEnabled ? 'Swap' : 'Copy',
 		selected_layer: selectedLayer?.layerId,
-		select_layer_x: selectedLayer?.window.x,
-		select_layer_y: selectedLayer?.window.y,
-		select_layer_height: selectedLayer?.window.height,
-		select_layer_width: selectedLayer?.window.width,
+		selected_layer_name: selectedLayer?.general.name,
+		selected_layer_x: selectedLayer?.window.x,
+		selected_layer_y: selectedLayer?.window.y,
+		selected_layer_height: selectedLayer?.window.height,
+		selected_layer_width: selectedLayer?.window.width,
 		...presetVariables,
 		...screenVariables,
 		...layerVariables,
 	})
+}
+
+function getLayerVariableId(self: ModuleInstance, layer: Layer): string {
+	const screen = self.screens.find((screen) => {
+		return screen.screenId === layer.layerIdObj.attachScreenId
+	})
+	const where =
+		screen?.screenIdObj.type === SCREEN_TYPE.MVR
+			? screen.general.name.replaceAll(' ', '').toLowerCase()
+			: layer.layerIdObj.sceneType === LoadIn.preview
+				? 'pvw'
+				: 'pgm'
+	if (screen?.screenIdObj.type === SCREEN_TYPE.MVR) {
+		return `${where}_layer_${layer.layerId}`
+	} else {
+		return `${where}_screen_${layer.layerIdObj.attachScreenId}_layer_${layer.serial}`
+	}
+}
+
+function getLayerVariableName(self: ModuleInstance, layer: Layer): string {
+	const screen = self.screens.find((screen) => {
+		return screen.screenId === layer.layerIdObj.attachScreenId
+	})
+	const where =
+		screen?.screenIdObj.type === SCREEN_TYPE.MVR
+			? screen.general.name
+			: layer.layerIdObj.sceneType === LoadIn.preview
+				? 'PVW'
+				: 'PGM'
+	if (screen?.screenIdObj.type === SCREEN_TYPE.MVR) {
+		return `Layer ${layer.layerId} on ${where}`
+	} else {
+		return `Layer L${layer.serial} on ${where} Screen ${layer.layerIdObj.attachScreenId}`
+	}
 }

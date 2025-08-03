@@ -1,9 +1,15 @@
 import jwt from 'jsonwebtoken'
 
 export const generateToken = (sn: string, secret: string): string => {
-	return jwt.sign(sn, secret, {
-		algorithm: 'HS256',
-	})
+	return jwt.sign(
+		{
+			SN: sn,
+		},
+		secret,
+		{
+			algorithm: 'HS256',
+		},
+	)
 }
 
 export function realMerge<T extends object>(to: T, from: Partial<T>): T {
