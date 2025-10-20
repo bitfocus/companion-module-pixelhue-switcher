@@ -2,7 +2,9 @@ import type { ModuleInstance } from './main.js'
 import { DropdownChoice } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
 import { getLayerBySelection, getLayerSelectionOptions } from './actionUtils.js'
+import { SCREEN_TYPE } from './interfaces/Screen.js'
 import { LayerBounds, LayerUMD } from './interfaces/Layer.js'
+
 
 export function updateCompanionActions(self: ModuleInstance): void {
 	self.setActionDefinitions({
@@ -312,7 +314,11 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			callback: async (event) => {
 				try {
 					const selectedLayer = self.layers.find((layer) => {
-						return layer.selected === 1
+						return (
+							layer.selected === 1 &&
+							layer.layerIdObj.attachScreenId !==
+								self.screens.find((s) => s.screenIdObj.type === SCREEN_TYPE.MVR)?.screenId
+						)
 					})
 
 					if (!selectedLayer) return
@@ -331,16 +337,23 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					label: 'Layer',
 					id: 'layerId',
 					default: 1,
-					choices: self.layers.map((layer): DropdownChoice => {
-						const screenName =
-							self.screens.find((screen) => screen.screenId === layer.layerIdObj.attachScreenId)?.general?.name ?? ''
-						const sceneType = layer.layerIdObj.sceneType === 2 ? 'PGM' : layer.layerIdObj.sceneType === 4 ? 'PVW' : ''
+					choices: self.layers
+						.filter(
+							(layer) =>
+								layer.general.name !== '' &&
+								layer.layerIdObj.attachScreenId !==
+									self.screens.find((s) => s.screenIdObj.type === SCREEN_TYPE.MVR)?.screenId,
+						)
+						.map((layer): DropdownChoice => {
+							const screenName =
+								self.screens.find((screen) => screen.screenId === layer.layerIdObj.attachScreenId)?.general?.name ?? ''
+							const sceneType = layer.layerIdObj.sceneType === 2 ? 'PGM' : layer.layerIdObj.sceneType === 4 ? 'PVW' : ''
 
-						return {
-							id: layer.layerId,
-							label: `${screenName} - ${sceneType} ${layer.general.name}`,
-						}
-					}),
+							return {
+								id: layer.layerId,
+								label: `${screenName} - [L${layer.serial}] ${sceneType} ${layer.general.name}`,
+							}
+						}),
 				},
 			],
 			callback: async (event) => {

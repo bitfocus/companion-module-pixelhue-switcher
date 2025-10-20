@@ -8,6 +8,7 @@ export const generateToken = (sn: string, secret: string): string => {
 		secret,
 		{
 			algorithm: 'HS256',
+			noTimestamp: true,
 		},
 	)
 }
