@@ -7,8 +7,8 @@ import { Layer } from './interfaces/Layer.js'
 export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 	const presetVariableDefinitions: CompanionVariableDefinition[] = self.presets.map((preset) => {
 		return {
-			variableId: `preset_${preset.keyPosition[0]}_name`,
-			name: `Preset ${preset.keyPosition[0]}: Name`,
+			variableId: `preset_${preset.serial}_name`,
+			name: `Preset ${preset.serial}: Name`,
 		}
 	})
 
@@ -84,7 +84,7 @@ export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 export function updateVariableValues(self: ModuleInstance): void {
 	const presetVariables: CompanionVariableValues = {}
 	self.presets.forEach((preset) => {
-		presetVariables[`preset_${preset.keyPosition[0]}_name`] = preset.general.name
+		presetVariables[`preset_${preset.serial}_name`] = preset.name
 	})
 
 	const screenVariables: CompanionVariableValues = {}

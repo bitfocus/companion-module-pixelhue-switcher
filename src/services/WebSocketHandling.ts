@@ -1,6 +1,6 @@
 import { ModuleInstance } from '../main.js'
 import { Layer, LayerSelection } from '../interfaces/Layer.js'
-import { Screen, ScreenListDetailData, ScreenSelectionData, UpdateLayoutData } from '../interfaces/Screen.js'
+import { Screen, ScreenSelectionData, UpdateLayoutData } from '../interfaces/Screen.js'
 import { Preset, PresetListDetailData } from '../interfaces/Preset.js'
 import { WebsocketCallbackData } from '../interfaces/WebsocketCallbackData.js'
 import { realMerge } from '../utils/utils.js'
@@ -10,9 +10,7 @@ export const MessageTypes = {
 	screensUpdated: 0x61100,
 	screenNamesChanged: 0x71102,
 	screensSelected: 0x71111,
-	presetsUpdated: 0xa2100,
 	presetNamesChanged: 0xa2105,
-	swapUpdated: 0x71201,
 	presetCreated: 0xa2101,
 	selectedScreenFreeze: 0x71113,
 	selectedScreenFtb: 0x71114,
@@ -24,18 +22,16 @@ export const MessageTypes = {
 	layerMoved: 0x8110b,
 	umdUpdated: 0x81113,
 	layerGeneralUpdated: 0x81109,
+	presetApplied: 0xa2100,
 }
 
 export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message: WebsocketCallbackData) => void } = {
 	[MessageTypes.layersSelected]: layersSelected,
-	//[MessageTypes.screensUpdated]: screensUpdated,
 	[MessageTypes.screenNamesChanged]: screenPropertiesChanged,
 	[MessageTypes.selectedScreenFreeze]: screenPropertiesChanged,
 	[MessageTypes.selectedScreenFtb]: screenPropertiesChanged,
 	[MessageTypes.screensSelected]: screensSelected,
-	[MessageTypes.presetsUpdated]: presetsUpdated,
 	[MessageTypes.presetNamesChanged]: presetNamesChanged,
-	[MessageTypes.swapUpdated]: swapUpdated,
 	[MessageTypes.presetCreated]: presetCreated,
 	[MessageTypes.globalFreezeChanged]: globalFreezeChanged,
 	[MessageTypes.globalFtbChanged]: globalFtbChanged,
@@ -44,6 +40,7 @@ export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message:
 	[MessageTypes.layerMoved]: layerMoved,
 	[MessageTypes.umdUpdated]: umdUpdated,
 	[MessageTypes.layerGeneralUpdated]: layerGeneralUpdated,
+	[MessageTypes.presetApplied]: presetApplied,
 }
 
 export function layersSelected(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -51,18 +48,15 @@ export function layersSelected(self: ModuleInstance, message: WebsocketCallbackD
 	layerSelections.forEach((layerSelection: LayerSelection) => {
 		const layer = self.layers.find((layer) => {
 			return layer.layerId === layerSelection.layerId
-		})!
+		})
+
+		if (!layer) return
 
 		layer.selected = layerSelection.selected
 	})
 
 	self.updateVariableValues()
 	self.checkFeedbacks('selectedLayerState')
-}
-
-export function screensUpdated(self: ModuleInstance, message: WebsocketCallbackData): void {
-	const screenResponse: ScreenListDetailData = message.data
-	updateScreens(self, screenResponse.list)
 }
 
 export function screenPropertiesChanged(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -106,7 +100,7 @@ export function presetNamesChanged(self: ModuleInstance, message: WebsocketCallb
 export function updatePresets(self: ModuleInstance, presets: Preset[]): void {
 	presets.forEach((preset) => {
 		const newPreset = self.presets.find((oldPreset: Preset) => {
-			return oldPreset.presetId === preset.presetId
+			return oldPreset.guid === preset.guid
 		})!
 		if (!newPreset) return
 		realMerge(newPreset, preset)
@@ -117,15 +111,8 @@ export function updatePresets(self: ModuleInstance, presets: Preset[]): void {
 	self.updatePresets()
 }
 
-export function swapUpdated(self: ModuleInstance, message: WebsocketCallbackData): void {
-	self.swapEnabled = message.data.enable === 1
-	self.setVariableValues({
-		take_action: self.swapEnabled ? 'Swap' : 'Copy',
-	})
-	self.checkFeedbacks('swapState')
-}
-
 export function presetCreated(self: ModuleInstance, message: WebsocketCallbackData): void {
+	console.log(message.data)
 	const presets: Preset[] = message.data
 	self.presets.push(...presets)
 	self.updateVariableDefinitions()
@@ -148,8 +135,6 @@ export function layerPresetCreated(self: ModuleInstance, message: WebsocketCallb
 
 export function layoutUpdated(self: ModuleInstance, message: WebsocketCallbackData): void {
 	const data: UpdateLayoutData = message.data
-
-	updateScreens(self, data.selectScreens)
 
 	data.deleteLayers.forEach((layerToDelete) => {
 		const index = self.layers.findIndex((layer) => {
@@ -207,4 +192,45 @@ export function layerGeneralUpdated(self: ModuleInstance, message: WebsocketCall
 	})
 
 	self.updateVariableValues()
+}
+
+export function presetApplied(self: ModuleInstance, message: WebsocketCallbackData): void {
+	const data: PresetListDetailData = message.data
+	console.log(JSON.stringify(data.list, null, 2))
+
+	const didTake = data.list.filter((item) => item.currentRegion === 2 && item.sourceRegion === 4).length > 0
+
+	data.list.forEach((preset) => {
+		if (preset.currentRegion > 2 && !didTake) {
+			const selectedScreensGuid = preset.screens.map((screen) => screen.guid)
+			self.screens = self.screens.map((screen): Screen => {
+				return {
+					...screen,
+					select: selectedScreensGuid.includes(screen.guid) ? 1 : 0,
+				}
+			})
+		}
+		self.presets = self.presets.map((singlePreset): Preset => {
+			if (singlePreset.currentRegion === preset.currentRegion || preset.currentRegion === 6) {
+				return {
+					...singlePreset,
+					currentRegion: 0,
+				}
+			} else {
+				return singlePreset
+			}
+		})
+		self.presets = self.presets.map((singlePreset): Preset => {
+			if (preset.guid === singlePreset.guid) {
+				return {
+					...singlePreset,
+					currentRegion: preset.currentRegion,
+				}
+			} else {
+				return singlePreset
+			}
+		})
+	})
+	self.checkFeedbacks('presetState')
+	self.checkFeedbacks('screenState')
 }

@@ -1,17 +1,17 @@
+import { Screen } from './Screen.js'
+
 export interface PresetListDetailData {
 	totalCount: number
 	list: Preset[]
 }
 
 export interface Preset {
-	presetId: number
-	general: PresetGeneral
-	presetIdObj: PresetIdObject
-	keyPosition: number[]
-}
-export interface PresetIdObject {
-	sceneType: number
-	playType: number
+	guid: string
+	name: string
+	currentRegion: number
+	sourceRegion: number
+	serial: number
+	screens: Screen[]
 }
 
 export interface PresetGeneral {

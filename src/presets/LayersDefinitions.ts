@@ -3,12 +3,12 @@ import { PRESET_CATEGORY } from '../utils/constants.js'
 
 export function getLayerDefinitions(): CompanionPresetDefinitions {
 	return {
-		bringFarward: {
+		bringForward: {
 			type: 'button',
 			category: PRESET_CATEGORY.LAYERS,
-			name: 'Bring Farward',
+			name: 'Bring Forward',
 			style: {
-				text: 'Bring Farward',
+				text: 'Bring Forward',
 				size: '14',
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(128, 128, 255),

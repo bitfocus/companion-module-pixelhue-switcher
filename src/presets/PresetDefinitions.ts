@@ -14,12 +14,12 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 			text: 'Load selected preset in Preview',
 			name: 'Preview',
 		}
-		presetsPresetDefinitions[`preset${preset.keyPosition[0]}Preview`] = {
+		presetsPresetDefinitions[`preset${preset.serial}Preview`] = {
 			type: 'button',
-			name: `Preset ${preset.keyPosition[0]} Load (Preview)`,
+			name: `Preset ${preset.serial} Load (Preview)`,
 			category: PRESET_CATEGORY.PREVIEW,
 			style: {
-				text: `$(${self.id}:preset_${preset.keyPosition[0]}_name)`,
+				text: `$(${self.id}:preset_${preset.serial}_name)`,
 				size: 16,
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -30,7 +30,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						{
 							actionId: 'loadPreset',
 							options: {
-								presetId: preset.presetId,
+								presetId: preset.guid,
 								loadIn: LoadIn.preview,
 							},
 						},
@@ -46,7 +46,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						color: combineRgb(255, 255, 255),
 					},
 					options: {
-						presetId: preset.presetId,
+						presetId: preset.guid,
 						loadIn: LoadIn.preview,
 					},
 				},
@@ -57,7 +57,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						color: combineRgb(255, 255, 255),
 					},
 					options: {
-						presetId: preset.presetId,
+						presetId: preset.guid,
 						loadIn: LoadIn.program,
 					},
 				},
@@ -70,12 +70,12 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 			text: 'Load selected preset in Program',
 			name: 'Program',
 		}
-		presetsPresetDefinitions[`preset${preset.keyPosition[0]}Program`] = {
+		presetsPresetDefinitions[`preset${preset.serial}Program`] = {
 			type: 'button',
-			name: `Preset ${preset.keyPosition[0]} Load (Program)`,
+			name: `Preset ${preset.serial} Load (Program)`,
 			category: PRESET_CATEGORY.PROGRAM,
 			style: {
-				text: `$(${self.id}:preset_${preset.keyPosition[0]}_name)`,
+				text: `$(${self.id}:preset_${preset.serial}_name)`,
 				size: 16,
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -86,7 +86,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						{
 							actionId: 'loadPreset',
 							options: {
-								presetId: preset.presetId,
+								presetId: preset.guid,
 								loadIn: LoadIn.program,
 							},
 						},
@@ -102,7 +102,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						color: combineRgb(255, 255, 255),
 					},
 					options: {
-						presetId: preset.presetId,
+						presetId: preset.guid,
 						loadIn: LoadIn.program,
 					},
 				},
@@ -113,7 +113,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						color: combineRgb(255, 255, 255),
 					},
 					options: {
-						presetId: preset.presetId,
+						presetId: preset.guid,
 						loadIn: LoadIn.program,
 					},
 				},
@@ -126,12 +126,12 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 			text: 'Load selected preset using Global Setting',
 			name: 'Global',
 		}
-		presetsPresetDefinitions[`preset${preset.keyPosition[0]}Global`] = {
+		presetsPresetDefinitions[`preset${preset.serial}Global`] = {
 			type: 'button',
-			name: `Preset ${preset.keyPosition[0]} Load (Global)`,
+			name: `Preset ${preset.serial} Load (Global)`,
 			category: PRESET_CATEGORY.GLOBAL,
 			style: {
-				text: `$(${self.id}:preset_${preset.keyPosition[0]}_name)`,
+				text: `$(${self.id}:preset_${preset.serial}_name)`,
 				size: 16,
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),
@@ -142,7 +142,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						{
 							actionId: 'loadPreset',
 							options: {
-								presetId: preset.presetId,
+								presetId: preset.guid,
 								loadIn: 0,
 							},
 						},
@@ -158,7 +158,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						color: combineRgb(255, 255, 255),
 					},
 					options: {
-						presetId: preset.presetId,
+						presetId: preset.guid,
 						loadIn: LoadIn.preview,
 					},
 				},
@@ -169,7 +169,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						color: combineRgb(255, 255, 255),
 					},
 					options: {
-						presetId: preset.presetId,
+						guid: preset.guid,
 						loadIn: LoadIn.program,
 					},
 				},

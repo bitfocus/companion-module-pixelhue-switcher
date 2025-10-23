@@ -21,7 +21,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	presets: Preset[] = []
 	layers: Layer[] = []
 	layerPresets: LayerPreset[] = []
-	swapEnabled: boolean = false
+	swapEnabled: boolean = true
+	effectTime: number = 1000
 	retryTimeout: NodeJS.Timeout | null = null
 
 	globalLoadPresetIn: number = LoadIn.preview

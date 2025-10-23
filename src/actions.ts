@@ -2,9 +2,8 @@ import type { ModuleInstance } from './main.js'
 import { DropdownChoice } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
 import { getLayerBySelection, getLayerSelectionOptions } from './actionUtils.js'
-import { SCREEN_TYPE } from './interfaces/Screen.js'
 import { LayerBounds, LayerUMD } from './interfaces/Layer.js'
-
+import { HTTPError } from 'got'
 
 export function updateCompanionActions(self: ModuleInstance): void {
 	self.setActionDefinitions({
@@ -30,9 +29,15 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			callback: async (event, context) => {
 				try {
 					const parsedTime = await context.parseVariablesInString(<string>event.options.time)
-					await self.apiClient?.take(!!event.options.customTimeEnabled!, parseInt(parsedTime))
-				} catch {
-					self.log('error', 'take send error')
+					const screensToTake = self.screens.filter((screen) => screen.select === 1)
+					await self.apiClient?.take(
+						screensToTake,
+						self.swapEnabled,
+						!!event.options.customTimeEnabled!,
+						event.options.customTimeEnabled ? parseInt(parsedTime) : self.effectTime,
+					)
+				} catch (error: any) {
+					self.log('error', (error as HTTPError).message)
 				}
 			},
 		},
@@ -41,7 +46,9 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			options: [],
 			callback: async () => {
 				try {
-					await self.apiClient?.cut()
+					const screensToTake = self.screens.filter((screen) => screen.select === 1)
+					const result = await self.apiClient?.cut(screensToTake, 0, self.swapEnabled)
+					console.log(result)
 				} catch {
 					self.log('error', 'cut send error')
 				}
@@ -52,7 +59,8 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			options: [],
 			callback: async () => {
 				try {
-					await self.apiClient?.cut(1)
+					const screensToTake = self.screens.filter((screen) => screen.select === 1)
+					await self.apiClient?.cut(screensToTake, 1)
 				} catch {
 					self.log('error', 'cut send error')
 				}
@@ -84,11 +92,14 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			],
 			callback: async (event) => {
 				try {
+					const screens = self.screens.filter((screen) => screen.select === 1)
 					let ftb = !!event.options.ftb
 					if (event.options.ftb === -1) {
 						ftb = self.globalFtb !== 1
 					}
-					await self.apiClient?.ftb(ftb, 700)
+					await self.apiClient?.ftb(screens, ftb, self.effectTime)
+					self.globalFtb = self.globalFtb !== 1 ? 1 : 0
+					self.checkFeedbacks('globalFtbState')
 				} catch {
 					self.log('error', 'FTB send error')
 				}
@@ -98,11 +109,8 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			name: 'Toggle Swap/Copy on Take/Cut',
 			options: [],
 			callback: async () => {
-				try {
-					await self.apiClient?.swap(!self.swapEnabled)
-				} catch {
-					self.log('error', 'Swap/Copy send error')
-				}
+				self.swapEnabled = !self.swapEnabled
+				self.checkFeedbacks('swapState')
 			},
 		},
 		freeze: {
@@ -131,11 +139,14 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			],
 			callback: async (event) => {
 				try {
+					const screens = self.screens.filter((screen) => screen.select === 1)
 					let freeze = !!event.options.freeze
 					if (event.options.freeze === -1) {
 						freeze = self.globalFreeze !== 1
 					}
-					await self.apiClient?.freeze(freeze)
+					await self.apiClient?.freeze(screens, freeze)
+					self.globalFreeze = self.globalFreeze !== 1 ? 1 : 0
+					self.checkFeedbacks('globalFreezeState')
 				} catch {
 					self.log('error', 'FTB send error')
 				}
@@ -196,14 +207,14 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					default: 1,
 					choices: self.presets
 						.sort((preset1, preset2) => {
-							if (preset1.keyPosition[0] > preset2.keyPosition[0]) return 1
-							if (preset1.keyPosition[0] < preset2.keyPosition[0]) return -1
+							if (preset1.serial > preset2.serial) return 1
+							if (preset1.serial < preset2.serial) return -1
 							return 0
 						})
 						.map((preset): DropdownChoice => {
 							return {
-								id: preset.presetId,
-								label: `${preset.keyPosition[0]}. ${preset.general.name}`,
+								id: preset.guid,
+								label: `${preset.serial}. ${preset.name}`,
 							}
 						}),
 				},
@@ -237,9 +248,12 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						sceneType = +event.options.loadIn!
 					}
 
-					await self.apiClient?.loadPreset(+event.options.presetId!, sceneType!)
-				} catch {
-					self.log('error', 'FTB send error')
+					const preset = self.presets.find((preset) => preset.guid === event.options.presetId!.toString())
+					if (!preset) return
+					const result = await self.apiClient?.loadPreset(preset, sceneType!)
+					self.log('debug', JSON.stringify(result))
+				} catch (error: any) {
+					self.log('error', (error as HTTPError).message)
 				}
 			},
 		},
@@ -280,19 +294,14 @@ export function updateCompanionActions(self: ModuleInstance): void {
 				},
 			],
 			callback: async (event) => {
-				try {
-					const action: number = <number>event.options.action
-					let screenSelection: boolean
-					if (action >= 0) {
-						screenSelection = event.options.action === 1
-					} else {
-						const screen = self.screens.find((screen) => screen.screenId === event.options.screenId)
-						screenSelection = screen?.select !== 1
-					}
-					await self.apiClient?.selectScreen(+event.options.screenId!, screenSelection)
-				} catch {
-					self.log('error', 'take send error')
+				const action: number = <number>event.options.action
+				const screenIndex = self.screens.findIndex((screen) => screen.screenId === event.options.screenId)
+				if (action >= 0) {
+					self.screens[screenIndex].select = event.options.action === 1 ? 1 : 0
+				} else {
+					self.screens[screenIndex].select = self.screens[screenIndex].select !== 1 ? 1 : 0
 				}
+				self.checkFeedbacks('screenState')
 			},
 		},
 		bringTo: {
@@ -310,20 +319,15 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						{ id: 4, label: 'Bring to Back' },
 					],
 				},
+				...getLayerSelectionOptions(self, true),
 			],
-			callback: async (event) => {
+			callback: async (event, context) => {
 				try {
-					const selectedLayer = self.layers.find((layer) => {
-						return (
-							layer.selected === 1 &&
-							layer.layerIdObj.attachScreenId !==
-								self.screens.find((s) => s.screenIdObj.type === SCREEN_TYPE.MVR)?.screenId
-						)
-					})
-
+					const selectedLayer = await getLayerBySelection(self, event, context)
 					if (!selectedLayer) return
 
-					await self.apiClient?.bringSelectedTo(selectedLayer.layerId, <number>event.options.bringTo)
+					const result = await self.apiClient?.bringSelectedTo(selectedLayer.layerId, <number>event.options.bringTo)
+					console.log(result)
 				} catch {
 					self.log('error', 'bring_to send error')
 				}
@@ -331,37 +335,14 @@ export function updateCompanionActions(self: ModuleInstance): void {
 		},
 		selectLayer: {
 			name: 'Select Layer',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Layer',
-					id: 'layerId',
-					default: 1,
-					choices: self.layers
-						.filter(
-							(layer) =>
-								layer.general.name !== '' &&
-								layer.layerIdObj.attachScreenId !==
-									self.screens.find((s) => s.screenIdObj.type === SCREEN_TYPE.MVR)?.screenId,
-						)
-						.map((layer): DropdownChoice => {
-							const screenName =
-								self.screens.find((screen) => screen.screenId === layer.layerIdObj.attachScreenId)?.general?.name ?? ''
-							const sceneType = layer.layerIdObj.sceneType === 2 ? 'PGM' : layer.layerIdObj.sceneType === 4 ? 'PVW' : ''
-
-							return {
-								id: layer.layerId,
-								label: `${screenName} - [L${layer.serial}] ${sceneType} ${layer.general.name}`,
-							}
-						}),
-				},
-			],
-			callback: async (event) => {
-				try {
-					await self.apiClient?.selectLayer(+event.options.layerId!, self.layers)
-				} catch {
-					self.log('error', 'take send error')
-				}
+			options: [...getLayerSelectionOptions(self, false)],
+			callback: async (event, context) => {
+				const selectedLayer = await getLayerBySelection(self, event, context)
+				if (!selectedLayer) return
+				self.layers = self.layers.map((layer) => {
+					layer.selected = layer.layerId === selectedLayer.layerId ? 1 : 0
+					return layer
+				})
 			},
 		},
 		setEffectTime: {
@@ -377,12 +358,9 @@ export function updateCompanionActions(self: ModuleInstance): void {
 				},
 			],
 			callback: async (event, context) => {
-				try {
-					const parsedTime = await context.parseVariablesInString(<string>event.options.time)
-					await self.apiClient?.setEffectTime(parseInt(parsedTime))
-				} catch {
-					self.log('error', 'take send error')
-				}
+				const parsedTime = parseInt(await context.parseVariablesInString(<string>event.options.time))
+				if (isNaN(parsedTime)) return
+				self.effectTime = parsedTime
 			},
 		},
 		applyLayerPreset: {
@@ -400,7 +378,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						}
 					}),
 				},
-				...getLayerSelectionOptions(self),
+				...getLayerSelectionOptions(self, true),
 			],
 			callback: async (event, context) => {
 				try {
@@ -445,7 +423,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					id: 'height',
 					useVariables: true,
 				},
-				...getLayerSelectionOptions(self),
+				...getLayerSelectionOptions(self, true),
 			],
 			callback: async (event, context) => {
 				try {

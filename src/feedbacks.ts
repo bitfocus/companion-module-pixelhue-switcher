@@ -50,14 +50,14 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 					default: 1,
 					choices: self.presets
 						.sort((preset1, preset2) => {
-							if (preset1.keyPosition[0] > preset2.keyPosition[0]) return 1
-							if (preset1.keyPosition[0] < preset2.keyPosition[0]) return -1
+							if (preset1.serial > preset2.serial) return 1
+							if (preset1.serial < preset2.serial) return -1
 							return 0
 						})
 						.map((preset): DropdownChoice => {
 							return {
-								id: preset.presetId,
-								label: `${preset.keyPosition[0]}. ${preset.general.name}`,
+								id: preset.guid,
+								label: `${preset.serial}. ${preset.name}`,
 							}
 						}),
 				},
@@ -80,9 +80,9 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 			],
 			callback: (feedback) => {
 				const preset = self.presets.find((preset) => {
-					return preset.presetId === feedback.options.presetId!
+					return preset.guid === feedback.options.presetId!
 				})
-				return preset?.presetIdObj.playType === +feedback.options.loadIn! || preset?.presetIdObj.playType === 6
+				return preset?.currentRegion === +feedback.options.loadIn! || preset?.currentRegion === 6
 			},
 		},
 		swapState: {

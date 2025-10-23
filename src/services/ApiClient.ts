@@ -1,9 +1,8 @@
 import got from 'got'
 import { generateToken } from '../utils/utils.js'
 import { ModuleInstance } from '../main.js'
-import { ScreenListDetailData } from '../interfaces/Screen.js'
-import { PresetListDetailData } from '../interfaces/Preset.js'
-import { SwapStateData } from '../interfaces/Swap.js'
+import { Screen, ScreenListDetailData } from '../interfaces/Screen.js'
+import { Preset, PresetListDetailData } from '../interfaces/Preset.js'
 import { Response } from '../interfaces/Response.js'
 import { Layer, LayerBounds, LayerListDetailData, LayerUMD } from '../interfaces/Layer.js'
 import { HttpClient } from './HttpClient.js'
@@ -37,15 +36,17 @@ export class ApiClient {
 		this.token = generateToken(serialNumber, startTime)
 		this.http.setToken(this.token)
 
+		instance.log('debug', 'Get Screens')
 		const screenResponse = await this.getScreens()
+		instance.log('debug', 'Get Presets')
 		const presetResponse = await this.getPresets()
-		const swapStateResponse = await this.getSwapState()
+		instance.log('debug', 'Get Layers')
 		const layerResponse = await this.getLayers()
+		instance.log('debug', 'Get Layer Presets')
 		const layerPresetsResponse = await this.getLayerPresets()
 
 		instance.screens = screenResponse.data.list
 		instance.presets = presetResponse.data.list
-		instance.swapEnabled = swapStateResponse.data.enable === 1
 		instance.layers = layerResponse.data.list
 		instance.layerPresets = layerPresetsResponse.data.list
 	}
@@ -64,72 +65,87 @@ export class ApiClient {
 			.json()
 	}
 
-	async take(customEffect: boolean = false, time: number = 500): Promise<any> {
+	async take(screens: Screen[], swap: boolean = true, customEffect: boolean = false, time: number = 500): Promise<any> {
+		const body = screens.map((screen) => {
+			return {
+				direction: 0,
+				effectSelect: customEffect ? 1 : 0,
+				screenGuid: screen.guid,
+				screenId: screen.screenId,
+				screenName: screen.general.name,
+				swapEnable: swap ? 1 : 0,
+				switchEffect: {
+					type: 1,
+					time,
+				},
+			}
+		})
+
+		return this.http!.put('/unico/v1/screen/take', body)
+	}
+
+	async cut(screens: Screen[], direction: number = 0, swap: boolean = true): Promise<any> {
+		const body = screens.map((screen) => {
+			return {
+				direction: +direction || 0,
+				screenId: screen.screenId,
+				swapEnable: swap ? 1 : 0,
+			}
+		})
+
+		console.log(body)
+
+		return this.http!.put('/unico/v1/screen/cut', body)
+	}
+
+	async ftb(screens: Screen[], enable: boolean, time: number): Promise<any> {
+		const body = screens.map((screen) => {
+			return {
+				screenId: screen.screenId,
+				ftb: {
+					enable: enable ? 1 : 0,
+					time,
+				},
+			}
+		})
+
+		return this.http!.put('/unico/v1/screen/ftb', body)
+	}
+
+	async freeze(screens: Screen[], enable: boolean): Promise<any> {
+		const body = screens.map((screen) => {
+			return {
+				screenId: screen.screenId,
+				freeze: enable ? 1 : 0,
+			}
+		})
+
+		return this.http!.put('/unico/v1/screen/freeze', body)
+	}
+
+	async loadPreset(preset: Preset, targetRegion: number): Promise<any> {
 		const body = {
-			direction: 0,
-			effectSelect: customEffect ? 1 : 0,
-			switchEffect: {
-				time: time,
-				type: 1,
+			auxiliary: {
+				keyFrame: {
+					enable: 1,
+				},
+				switchEffect: {
+					type: 1,
+					time: 500,
+				},
+				swapEnable: 1,
+				effect: {
+					enable: 1,
+				},
 			},
+			serial: preset.serial,
+			targetRegion, //HTTP_PRESET_TYPE[this.config.presetType],
+			presetId: preset.guid,
 		}
 
-		return this.http!.put('/unico/v1/screen/selected/take', body)
-	}
+		console.log(JSON.stringify(body))
 
-	async cut(direction: number = 0): Promise<any> {
-		const body = {
-			direction: +direction || 0,
-		}
-
-		return this.http!.put('/unico/v1/screen/selected/cut', body)
-	}
-
-	async ftb(enable: boolean, time: number): Promise<any> {
-		const body = {
-			ftb: {
-				enable: enable ? 1 : 0,
-				time,
-			},
-		}
-
-		return this.http!.put('/unico/v1/screen/selected/ftb', body)
-	}
-
-	async freeze(enable: boolean): Promise<any> {
-		const body = {
-			freeze: enable ? 1 : 0,
-		}
-
-		return this.http!.put('/unico/v1/screen/selected/freeze', body)
-	}
-
-	async swap(enable: boolean): Promise<any> {
-		const body = {
-			enable: enable ? 1 : 0,
-		}
-
-		return this.http!.put('/unico/v1/screen/global/swap', body)
-	}
-
-	async loadPreset(presetId: number, sceneType: number): Promise<any> {
-		const body = {
-			sceneType, //HTTP_PRESET_TYPE[this.config.presetType],
-			presetId,
-		}
-
-		return this.http!.put('/unico/v1/preset/play', body)
-	}
-
-	async selectScreen(screenId: number, selected: boolean): Promise<any> {
-		const body = [
-			{
-				screenId,
-				select: selected ? 1 : 0,
-			},
-		]
-
-		return this.http!.put('/unico/v1/screen/select', body)
+		return this.http!.post('/unico/v1/preset/apply', body)
 	}
 
 	async selectLayer(layerId: number, otherLayers: Layer[]): Promise<any> {
@@ -150,7 +166,7 @@ export class ApiClient {
 				}),
 		]
 
-		return this.http!.put('/unico/v1/layers/select', body)
+		return this.http!.put('/unico/v1/screen/select', body)
 	}
 
 	async bringSelectedTo(layerId: number, to: number): Promise<any> {
@@ -165,17 +181,6 @@ export class ApiClient {
 		]
 
 		return this.http!.put('/unico/v1/layers/zorder', body)
-	}
-
-	async setEffectTime(time: number): Promise<any> {
-		const body = {
-			switchEffect: {
-				time,
-				type: 1,
-			},
-		}
-
-		return this.http!.put('/unico/v1/screen/global/switch-effect', body)
 	}
 
 	async applyLayerPreset(layerId: number, layerPreset: LayerPreset): Promise<any> {
@@ -216,11 +221,7 @@ export class ApiClient {
 	}
 
 	async getPresets(): Promise<Response<PresetListDetailData>> {
-		return this.http!.get('/unico/v1/preset/list-detail')
-	}
-
-	async getSwapState(): Promise<Response<SwapStateData>> {
-		return this.http!.get('/unico/v1/screen/global/swap')
+		return this.http!.get('/unico/v1/preset')
 	}
 
 	async getLayers(): Promise<Response<LayerListDetailData>> {

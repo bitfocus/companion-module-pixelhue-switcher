@@ -1,7 +1,7 @@
 import { combineRgb, CompanionPresetDefinitions } from '@companion-module/base'
 import { PRESET_CATEGORY } from '../utils/constants.js'
 
-export function getDisplatPresetDefinitions(): CompanionPresetDefinitions {
+export function getDisplayPresetDefinitions(): CompanionPresetDefinitions {
 	return {
 		swapCopy: {
 			type: 'button',
