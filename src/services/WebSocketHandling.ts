@@ -112,9 +112,9 @@ export function updatePresets(self: ModuleInstance, presets: Preset[]): void {
 }
 
 export function presetCreated(self: ModuleInstance, message: WebsocketCallbackData): void {
-	console.log(message.data)
-	const presets: Preset[] = message.data
-	self.presets.push(...presets)
+	const newPreset: Preset = message.data
+	self.presets = self.presets.filter((preset) => preset.serial !== newPreset.serial)
+	self.presets.push(newPreset)
 	self.updateVariableDefinitions()
 	self.updateVariableValues()
 }
@@ -196,7 +196,6 @@ export function layerGeneralUpdated(self: ModuleInstance, message: WebsocketCall
 
 export function presetApplied(self: ModuleInstance, message: WebsocketCallbackData): void {
 	const data: PresetListDetailData = message.data
-	console.log(JSON.stringify(data.list, null, 2))
 
 	const didTake = data.list.filter((item) => item.currentRegion === 2 && item.sourceRegion === 4).length > 0
 
