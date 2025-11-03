@@ -30,7 +30,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						{
 							actionId: 'loadPreset',
 							options: {
-								presetId: preset.guid,
+								presetId: preset.serial,
 								loadIn: LoadIn.preview,
 							},
 						},
@@ -46,7 +46,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						color: combineRgb(255, 255, 255),
 					},
 					options: {
-						presetId: preset.guid,
+						presetId: preset.serial,
 						loadIn: LoadIn.preview,
 					},
 				},
@@ -57,7 +57,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						color: combineRgb(255, 255, 255),
 					},
 					options: {
-						presetId: preset.guid,
+						presetId: preset.serial,
 						loadIn: LoadIn.program,
 					},
 				},

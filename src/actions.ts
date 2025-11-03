@@ -213,7 +213,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						})
 						.map((preset): DropdownChoice => {
 							return {
-								id: preset.guid,
+								id: preset.serial,
 								label: `${preset.serial}. ${preset.name}`,
 							}
 						}),
@@ -248,7 +248,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						sceneType = +event.options.loadIn!
 					}
 
-					const preset = self.presets.find((preset) => preset.guid === event.options.presetId!.toString())
+					const preset = self.presets.find((preset) => preset.serial === event.options.presetId!)
 					if (!preset) return
 					const result = await self.apiClient?.loadPreset(preset, sceneType!)
 					self.log('debug', JSON.stringify(result))

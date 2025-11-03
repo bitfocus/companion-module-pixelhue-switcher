@@ -56,7 +56,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 						})
 						.map((preset): DropdownChoice => {
 							return {
-								id: preset.guid,
+								id: preset.serial,
 								label: `${preset.serial}. ${preset.name}`,
 							}
 						}),
@@ -80,7 +80,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 			],
 			callback: (feedback) => {
 				const preset = self.presets.find((preset) => {
-					return preset.guid === feedback.options.presetId!
+					return preset.serial === feedback.options.presetId!
 				})
 				return preset?.currentRegion === +feedback.options.loadIn! || preset?.currentRegion === 6
 			},
