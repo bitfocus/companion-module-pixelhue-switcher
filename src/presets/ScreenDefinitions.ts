@@ -38,16 +38,6 @@ export function getScreenPresetDefinitions(self: ModuleInstance): CompanionPrese
 			],
 			feedbacks: [
 				{
-					feedbackId: 'screenState',
-					style: {
-						bgcolor: combineRgb(255, 0, 0),
-						color: combineRgb(255, 255, 255),
-					},
-					options: {
-						screenId: screen.screenId,
-					},
-				},
-				{
 					feedbackId: 'screenFtbState',
 					style: {
 						pngalignment: 'right:top',
@@ -64,6 +54,16 @@ export function getScreenPresetDefinitions(self: ModuleInstance): CompanionPrese
 						pngalignment: 'right:top',
 						png64:
 							'iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAGKADAAQAAAABAAAAGAAAAADiNXWtAAABl0lEQVRIDeVVbU7DMAxNUj7uMHEXyokmTtD2BGgnotwF7Q6A1pBX79V2p04r4wcSkdL44yWxn50thH81NruPFnNN0vES8MPLVz2koQ4hNsCnIT5B32/vW+jnxs05J31Dyq/lcKrB6O1kXBDSgj14KnJ3ilObx3qkhlXsSgVAoCN3lobN7jPDs9/eTfvk8NiANvgw3p9v+1EoH0fRocpNzLGmc80qtJWQYujLPsxxOIqqQ+yOgNGZY3xEVlAsDZThA2YElw/24gzqWKdUoTBdyD8doMpS5DJIQ+rlYHAPnrWQiA6bMW2WUifFSjtreC4DNavEwtrIpBnQur7guksll4Gaf09yF6AGiJhF5Irr0GGIHBMyQyCGe+GnD6ujyKZuQetk/3ZcBjjIFpCFnRechZ0XXPBsFAnLXSAPLdTiKunl/MaWsy+aMnzAKD44+mB3L/n4SDo4+DIhXzakpauDz2BxL4sHAAsoDYAm0Eagf+kgV+QlEN/C3G9/9OY+6q4GNJ6uuUNB1T7X1XOVJFSt+8u86sI/sfkbt1neAWb12WMAAAAASUVORK5CYII=',
+					},
+					options: {
+						screenId: screen.screenId,
+					},
+				},
+				{
+					feedbackId: 'screenState',
+					style: {
+						bgcolor: combineRgb(255, 0, 0),
+						color: combineRgb(255, 255, 255),
 					},
 					options: {
 						screenId: screen.screenId,
