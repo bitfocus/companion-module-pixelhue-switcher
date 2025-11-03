@@ -24,6 +24,7 @@ export interface Screen {
 	general: ScreenGeneral
 	select: 0 | 1
 	freeze: 0 | 1
+	enable: 0 | 1
 	guid: string
 	ftb: ScreenFTB
 }

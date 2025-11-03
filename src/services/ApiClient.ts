@@ -100,10 +100,17 @@ export class ApiClient {
 
 	async ftb(screens: Screen[], enable: boolean, time: number): Promise<any> {
 		const body = screens.map((screen) => {
+			let ftb = 1
+			if (global) {
+				ftb = enable ? 1 : 0
+			} else {
+				ftb = screen.ftb.enable === 1 ? 0 : 1
+			}
+
 			return {
 				screenId: screen.screenId,
 				ftb: {
-					enable: enable ? 1 : 0,
+					enable: ftb,
 					time,
 				},
 			}
@@ -112,11 +119,20 @@ export class ApiClient {
 		return this.http!.put('/unico/v1/screen/ftb', body)
 	}
 
-	async freeze(screens: Screen[], enable: boolean): Promise<any> {
+	async freeze(screens: Screen[], enable: boolean | null): Promise<any> {
 		const body = screens.map((screen) => {
+			const global = enable !== null
+
+			let freeze = 1
+			if (global) {
+				freeze = enable ? 1 : 0
+			} else {
+				freeze = screen.freeze === 1 ? 0 : 1
+			}
+
 			return {
 				screenId: screen.screenId,
-				freeze: enable ? 1 : 0,
+				freeze,
 			}
 		})
 

@@ -1,9 +1,15 @@
 import type { ModuleInstance } from './main.js'
 import { DropdownChoice } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
-import { getLayerBySelection, getLayerSelectionOptions } from './actionUtils.js'
+import {
+	getLayerBySelection,
+	getLayerSelectionOptions,
+	getScreensBySelection,
+	getScreenSelectionOptions,
+} from './actionUtils.js'
 import { LayerBounds, LayerUMD } from './interfaces/Layer.js'
 import { HTTPError } from 'got'
+import { SCREEN_TYPE } from './interfaces/Screen.js'
 
 export function updateCompanionActions(self: ModuleInstance): void {
 	self.setActionDefinitions({
@@ -89,10 +95,11 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						},
 					],
 				},
+				...getScreenSelectionOptions(self, [SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]),
 			],
 			callback: async (event) => {
 				try {
-					const screens = self.screens.filter((screen) => screen.select === 1)
+					const screens = getScreensBySelection(self, event)
 					let ftb = !!event.options.ftb
 					if (event.options.ftb === -1) {
 						ftb = self.globalFtb !== 1
@@ -114,7 +121,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			},
 		},
 		freeze: {
-			name: 'Freeze/Unfreeze selected screens',
+			name: 'Freeze/Unfreeze',
 			options: [
 				{
 					type: 'dropdown',
@@ -136,10 +143,11 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						},
 					],
 				},
+				...getScreenSelectionOptions(self, [SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]),
 			],
 			callback: async (event) => {
 				try {
-					const screens = self.screens.filter((screen) => screen.select === 1)
+					const screens = getScreensBySelection(self, event)
 					let freeze = !!event.options.freeze
 					if (event.options.freeze === -1) {
 						freeze = self.globalFreeze !== 1

@@ -5,7 +5,7 @@ import { UpgradeScripts } from './upgrades.js'
 import { updateCompanionActions } from './actions.js'
 import { updateCompanionFeedbacks } from './feedbacks.js'
 import { ApiClient } from './services/ApiClient.js'
-import { Screen } from './interfaces/Screen.js'
+import { Screen, SCREEN_TYPE } from './interfaces/Screen.js'
 import { LoadIn, Preset } from './interfaces/Preset.js'
 import { updateCompanionPresets } from './presets.js'
 import { Layer } from './interfaces/Layer.js'
@@ -118,6 +118,16 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	updateVariableValues(): void {
 		updateVariableValues(this)
+	}
+
+	getScreens(allowedScreenTypes: number[] = [SCREEN_TYPE.SCREEN]): Screen[] {
+		return this.screens
+			.filter((screen) => {
+				return allowedScreenTypes.includes(screen.screenIdObj.type)
+			})
+			.filter((screen) => {
+				return screen.enable === 1
+			})
 	}
 }
 

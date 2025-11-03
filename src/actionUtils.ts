@@ -7,7 +7,7 @@ import {
 } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
 import { Layer } from './interfaces/Layer.js'
-import { SCREEN_TYPE } from './interfaces/Screen.js'
+import { Screen, SCREEN_TYPE } from './interfaces/Screen.js'
 
 export function getLayerSelectionOptions(
 	self: ModuleInstance,
@@ -92,6 +92,52 @@ export async function getLayerBySelection(
 				layer.serial === parsedLayerNumber &&
 				layer.layerIdObj.sceneType === event.options.where
 			)
+		})
+	}
+}
+
+export function getScreenSelectionOptions(
+	self: ModuleInstance,
+	allowedScreenTypes: number[] = [SCREEN_TYPE.SCREEN],
+): SomeCompanionActionInputField[] {
+	return [
+		{
+			type: 'checkbox',
+			label: 'Use global screen selection',
+			id: 'useSelected',
+			default: true,
+		},
+		{
+			type: 'multidropdown',
+			label: 'Screens',
+			id: 'screenIds',
+			default: [],
+			choices: self.screens
+				.filter((screen) => {
+					return allowedScreenTypes.includes(screen.screenIdObj.type)
+				})
+				.filter((screen) => {
+					return screen.enable === 1
+				})
+				.map((screen): DropdownChoice => {
+					return {
+						id: screen.guid,
+						label: screen.general.name,
+					}
+				}),
+			isVisibleExpression: '$(options:useSelected) != true',
+		},
+	]
+}
+
+export function getScreensBySelection(self: ModuleInstance, event: CompanionActionEvent): Screen[] {
+	if (event.options.useSelected) {
+		return self.screens.filter((screen) => {
+			return screen.select === 1
+		})
+	} else {
+		return self.screens.filter((screen) => {
+			return (event.options.screenIds as string[]).includes(screen.guid)
 		})
 	}
 }

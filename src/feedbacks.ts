@@ -110,7 +110,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 					label: 'Screen',
 					id: 'screenId',
 					default: 1,
-					choices: self.screens.map((screen): DropdownChoice => {
+					choices: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]).map((screen): DropdownChoice => {
 						return {
 							id: screen.screenId,
 							label: screen.general.name,
@@ -120,7 +120,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 			],
 			callback: (feedback) => {
 				const screen = self.screens.find((screen) => {
-					return screen.screenId === feedback.options.screenId!
+					return screen.guid === feedback.options.screenId!
 				})
 				return screen?.select === 1
 			},
@@ -139,9 +139,9 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 					label: 'Screen',
 					id: 'screenId',
 					default: 1,
-					choices: self.screens.map((screen): DropdownChoice => {
+					choices: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]).map((screen): DropdownChoice => {
 						return {
-							id: screen.screenId,
+							id: screen.guid,
 							label: screen.general.name,
 						}
 					}),
@@ -149,7 +149,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 			],
 			callback: (feedback) => {
 				const screen = self.screens.find((screen) => {
-					return screen.screenId === feedback.options.screenId!
+					return screen.guid === feedback.options.screenId!
 				})
 				return screen?.freeze === 1
 			},
@@ -167,10 +167,10 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 					type: 'dropdown',
 					label: 'Screen',
 					id: 'screenId',
-					default: 1,
-					choices: self.screens.map((screen): DropdownChoice => {
+					default: '1',
+					choices: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]).map((screen): DropdownChoice => {
 						return {
-							id: screen.screenId,
+							id: screen.guid,
 							label: screen.general.name,
 						}
 					}),
@@ -178,7 +178,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 			],
 			callback: (feedback) => {
 				const screen = self.screens.find((screen) => {
-					return screen.screenId === feedback.options.screenId!
+					return screen.guid === feedback.options.screenId!
 				})
 				return screen?.ftb.enable === 1
 			},
