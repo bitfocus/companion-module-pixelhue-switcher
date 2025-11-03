@@ -508,5 +508,37 @@ export function updateCompanionActions(self: ModuleInstance): void {
 				}
 			},
 		},
+		inputOnLayer: {
+			name: 'Set Input on Layer',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'inputId',
+					label: 'Input',
+					default: '',
+					choices: self.getInterfaces(2, 0).map((interfaceO) => {
+						return {
+							id: interfaceO.interfaceId,
+							label: interfaceO.general.name,
+						}
+					}),
+				},
+				...getLayerSelectionOptions(self, true, [SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]),
+			],
+			callback: async (event, context) => {
+				const layer = await getLayerBySelection(self, event, context)
+				const input = self.interfaces.find((interfaceO) => {
+					return interfaceO.interfaceId === event.options.inputId
+				})
+				if (layer === undefined || input === undefined) return
+
+				try {
+					await self.apiClient?.setInputOnLayer(layer, input)
+				} catch (error: any) {
+					self.log('error', 'inputOnLayer send error')
+					self.log('error', error)
+				}
+			},
+		},
 	})
 }

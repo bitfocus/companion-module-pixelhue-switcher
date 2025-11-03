@@ -7,6 +7,7 @@ import { Response } from '../interfaces/Response.js'
 import { Layer, LayerBounds, LayerListDetailData, LayerUMD } from '../interfaces/Layer.js'
 import { HttpClient } from './HttpClient.js'
 import { LayerPreset, LayerPresetListDetailData } from '../interfaces/LayerPreset.js'
+import { Interface, InterfacesListDetailData } from '../interfaces/Interface.js'
 
 export class ApiClient {
 	http: HttpClient | null = null
@@ -44,11 +45,14 @@ export class ApiClient {
 		const layerResponse = await this.getLayers()
 		instance.log('debug', 'Get Layer Presets')
 		const layerPresetsResponse = await this.getLayerPresets()
+		instance.log('debug', 'Get Interfaces')
+		const interfacesResponse = await this.getInterfaces()
 
 		instance.screens = screenResponse.data.list
 		instance.presets = presetResponse.data.list
 		instance.layers = layerResponse.data.list
 		instance.layerPresets = layerPresetsResponse.data.list
+		instance.interfaces = interfacesResponse.data.list
 	}
 
 	async _getDeviceOpenDetail(): Promise<any> {
@@ -232,6 +236,23 @@ export class ApiClient {
 		return this.http!.put('/unico/v1/layers/umd', body)
 	}
 
+	async setInputOnLayer(layer: Layer, input: Interface): Promise<any> {
+		const body = [
+			{
+				layerId: layer.layerId,
+				source: {
+					general: {
+						sourceId: input.interfaceId,
+						sourceType: input.auxiliaryInfo.connectorInfo.interfaceType,
+						connectorType: input.auxiliaryInfo.connectorInfo.type,
+					},
+				},
+			},
+		]
+
+		return this.http!.put('/unico/v1/layers/source', body)
+	}
+
 	async getScreens(): Promise<Response<ScreenListDetailData>> {
 		return this.http!.get('/unico/v1/screen/list-detail')
 	}
@@ -246,5 +267,9 @@ export class ApiClient {
 
 	async getLayerPresets(): Promise<Response<LayerPresetListDetailData>> {
 		return this.http!.get('/unico/v1/layers/layer-preset/list-detail')
+	}
+
+	async getInterfaces(): Promise<Response<InterfacesListDetailData>> {
+		return this.http!.get('/unico/v1/interface/list-detail')
 	}
 }

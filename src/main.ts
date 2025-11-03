@@ -11,6 +11,7 @@ import { updateCompanionPresets } from './presets.js'
 import { Layer } from './interfaces/Layer.js'
 import { WebSocketClient } from './services/WebSocketClient.js'
 import { LayerPreset } from './interfaces/LayerPreset.js'
+import { Interface } from './interfaces/Interface.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig // Setup in init()
@@ -21,6 +22,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	presets: Preset[] = []
 	layers: Layer[] = []
 	layerPresets: LayerPreset[] = []
+	interfaces: Interface[] = []
 	swapEnabled: boolean = true
 	effectTime: number = 1000
 	retryTimeout: NodeJS.Timeout | null = null
@@ -128,6 +130,15 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			.filter((screen) => {
 				return screen.enable === 1
 			})
+	}
+
+	getInterfaces(type: number, workMode: number): Interface[] {
+		return this.interfaces.filter((interfaceO) => {
+			return (
+				interfaceO.auxiliaryInfo.connectorInfo.interfaceType === type &&
+				interfaceO.auxiliaryInfo.connectorInfo.workMode === workMode
+			)
+		})
 	}
 }
 
