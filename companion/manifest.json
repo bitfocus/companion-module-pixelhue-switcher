@@ -25,6 +25,6 @@
 	},
 	"legacyIds": ["pixelhue-fseries"],
 	"manufacturer": "Pixelhue",
-	"products": ["P10", "P20", "F4", "F4Lite", "F8", "Q8"],
+	"products": ["P10", "P20", "F4", "F4Lite", "F8", "Q8", "P80"],
 	"keywords": ["Pixelhue"]
 }
