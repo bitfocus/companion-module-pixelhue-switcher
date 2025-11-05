@@ -1,5 +1,5 @@
 import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField } from '@companion-module/base'
-import { GetConfigFields, type ModuleConfig } from './config.js'
+import { Config, type ModuleConfig } from './config.js'
 import { updateCompanionVariableDefinitions, updateVariableValues } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
 import { updateCompanionActions } from './actions.js'
@@ -12,11 +12,14 @@ import { Layer } from './interfaces/Layer.js'
 import { WebSocketClient } from './services/WebSocketClient.js'
 import { LayerPreset } from './interfaces/LayerPreset.js'
 import { Interface } from './interfaces/Interface.js'
+import { discoverDevices } from './services/Discovery.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig // Setup in init()
 	apiClient: ApiClient | null = null
 	webSocket: WebSocketClient | null = null
+
+	discoveredDevices: Array<{ id: string; label: string }> = []
 
 	screens: Screen[] = []
 	presets: Preset[] = []
@@ -58,12 +61,33 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}
 
 		try {
-			this.apiClient = await ApiClient.create(this, this.config.host)
+			// Discover devices first
+			const devices = await discoverDevices(this.config.host)
+			this.log('debug', `Discovered devices: ${JSON.stringify(devices)}`)
+			this.discoveredDevices = devices.map((d) => ({
+				id: d.SN,
+				label: `${d.deviceName || 'Device'} (${d.SN}) – ${d.ip}`,
+			}))
+
+			// If multiple devices and none selected yet, ask the user to pick one
+			if (devices.length > 1 && !this.config.deviceSn) {
+				this.updateStatus(InstanceStatus.BadConfig)
+				this.log('info', 'Multiple devices found. Please select which one to control in the config.')
+				// Stop here so Companion refreshes the config UI and shows the dropdown
+				return
+			}
+
+			// Pick the device to use
+			const targetSn = this.config.deviceSn ?? devices[0]?.SN
+			if (!targetSn) throw new Error('No devices discovered.')
+
+			// Create ApiClient bound to that SN
+			this.apiClient = await ApiClient.create(this, this.config.host, { targetSn })
 			this.webSocket = await WebSocketClient.create(this, this.config.host, this.apiClient.token!)
 
-			this.updateActions() // export actions
-			this.updateFeedbacks() // export feedbacks
-			this.updateVariableDefinitions() // export variable definitions
+			this.updateActions()
+			this.updateFeedbacks()
+			this.updateVariableDefinitions()
 			this.updatePresets()
 			this.updateVariableValues()
 
@@ -71,7 +95,6 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		} catch (err) {
 			this.log('error', `Initialization failed: ${err instanceof Error ? err.message : String(err)}`)
 			this.error()
-			return
 		}
 	}
 
@@ -99,7 +122,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	// Return config fields for web config
 	getConfigFields(): SomeCompanionConfigField[] {
-		return GetConfigFields()
+		return new Config(this.discoveredDevices, this.config).GetConfigFields()
 	}
 
 	updateActions(): void {

@@ -14,6 +14,7 @@ import { MACHINE_CONFIGS, MachineConfig } from '../config/machineConfig.js'
 type CreateOptions = {
 	model?: ModelKey
 	overrides?: Partial<Record<ModelKey, Partial<MachineConfig>>>
+	targetSn?: string
 }
 
 export class ApiClient {
@@ -53,9 +54,15 @@ export class ApiClient {
 
 	async setup(instance: ModuleInstance, opts: CreateOptions): Promise<void> {
 		const discovery = await this._getDeviceList()
-		const device = discovery?.data?.list?.[0]
-		instance.log('debug', `Discovery response: ${JSON.stringify(discovery)}`)
-		if (!device) throw new Error('No devices in discovery response.')
+		const list = discovery?.data?.list ?? []
+
+		const device = opts.targetSn ? list.find((d: any) => d.SN === opts.targetSn) : list[0]
+
+		if (!device) {
+			throw new Error(
+				opts.targetSn ? `No device with SN "${opts.targetSn}" found in discovery.` : 'No devices discovered.',
+			)
+		}
 
 		const httpProto = device.protocols?.find((p: any) => p.linkType === 'http')
 		if (!httpProto?.port) throw new Error('HTTP protocol/port not found in discovery response.')
@@ -63,7 +70,7 @@ export class ApiClient {
 		this.apiPort = httpProto.port
 
 		const modelFromId = MODEL_ID_TO_KEY[device.modelId as number] as ModelKey | undefined
-		const selectedModel: ModelKey = opts.model ?? modelFromId ?? 'P10' // sensible fallback
+		const selectedModel: ModelKey = opts.model ?? modelFromId ?? 'PF' // sensible fallback
 		instance.log('debug', `Using model: ${selectedModel}`)
 
 		const isVirtual = device.SN.startsWith('virtual')
