@@ -19,6 +19,7 @@ export const P20: MachineConfig = {
 			apply: '/unico/v1/preset/apply',
 		},
 		layers: {
+			source: '/unico/v1/layers/source',
 			listDetail: '/unico/v1/layers/list-detail',
 			zorder: '/unico/v1/layers/zorder',
 			window: '/unico/v1/layers/window',

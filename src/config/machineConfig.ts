@@ -30,6 +30,7 @@ export interface MachineConfig {
 			apply: string
 		}
 		layers: {
+			source: string
 			listDetail: string
 			zorder: string
 			window: string

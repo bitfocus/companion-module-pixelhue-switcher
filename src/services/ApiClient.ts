@@ -247,7 +247,7 @@ export class ApiClient {
 			},
 		]
 
-		return this.http!.put('/unico/v1/layers/source', body)
+		return this.http!.put(this.cfg.endpoints.layers.source, body)
 	}
 
 	async getScreens(): Promise<Response<ScreenListDetailData>> {
