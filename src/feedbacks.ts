@@ -112,7 +112,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 					default: 1,
 					choices: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]).map((screen): DropdownChoice => {
 						return {
-							id: screen.screenId,
+							id: screen.guid,
 							label: screen.general.name,
 						}
 					}),
