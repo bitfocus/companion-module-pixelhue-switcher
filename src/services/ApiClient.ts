@@ -8,6 +8,7 @@ import { Layer, LayerBounds, LayerListDetailData, LayerUMD } from '../interfaces
 import { HttpClient } from './HttpClient.js'
 import { LayerPreset, LayerPresetListDetailData } from '../interfaces/LayerPreset.js'
 import { Interface, InterfacesListDetailData } from '../interfaces/Interface.js'
+import { TestPatternPayload } from '../interfaces/TestPattern.js'
 
 export class ApiClient {
 	http: HttpClient | null = null
@@ -271,5 +272,18 @@ export class ApiClient {
 
 	async getInterfaces(): Promise<Response<InterfacesListDetailData>> {
 		return this.http!.get('/unico/v1/interface/list-detail')
+	}
+
+	async setTestPattern(interfaceIds: number[], testPattern: TestPatternPayload): Promise<any> {
+		const body = interfaceIds.map((interfaceId) => {
+			return {
+				interfaceId,
+				imageQuality: {
+					testPattern,
+				},
+			}
+		})
+
+		return this.http!.put('/unico/v1/interface/image-quality', body)
 	}
 }
