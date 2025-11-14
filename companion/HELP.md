@@ -46,6 +46,7 @@ This module provides comprehensive control for Pixelhue video switching devices 
 
 - **Toggle UMD (Under Monitor Display)**: Control UMD display visibility
 - **Swap/Copy Operations**: Manage content swapping between outputs
+- **Test Pattern Control**: Push any built-in Pixelhue test pattern
 
 ## Available Feedbacks
 
