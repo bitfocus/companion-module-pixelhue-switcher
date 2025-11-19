@@ -10,6 +10,7 @@ import { LayerPreset, LayerPresetListDetailData } from '../interfaces/LayerPrese
 import { Interface, InterfacesListDetailData } from '../interfaces/Interface.js'
 import { MODEL_ID_TO_KEY, ModelKey } from '../config/modelMap.js'
 import { MACHINE_CONFIGS, MachineConfig } from '../config/machineConfig.js'
+import { SourceBackup } from '../interfaces/SourceBackup.js'
 
 type CreateOptions = {
 	model?: ModelKey
@@ -58,12 +59,6 @@ export class ApiClient {
 
 		const device = opts.targetSn ? list.find((d: any) => d.SN === opts.targetSn) : list[0]
 
-		if (!device) {
-			throw new Error(
-				opts.targetSn ? `No device with SN "${opts.targetSn}" found in discovery.` : 'No devices discovered.',
-			)
-		}
-
 		const httpProto = device.protocols?.find((p: any) => p.linkType === 'http')
 		if (!httpProto?.port) throw new Error('HTTP protocol/port not found in discovery response.')
 
@@ -102,12 +97,15 @@ export class ApiClient {
 		const layerPresetsResponse = await this.getLayerPresets()
 		instance.log('debug', 'Get Interfaces')
 		const interfacesResponse = await this.getInterfaces()
+		instance.log('debug', 'Get Backup Sources')
+		const backupSourceResponse = await this.getBackupSource()
 
 		instance.screens = screenResponse.data.list
 		instance.presets = presetResponse.data.list
 		instance.layers = layerResponse.data.list
 		instance.layerPresets = layerPresetsResponse.data.list
 		instance.interfaces = interfacesResponse.data.list
+		instance.sourceBackups = backupSourceResponse.data
 	}
 
 	async _getDeviceList(): Promise<any> {
@@ -268,5 +266,13 @@ export class ApiClient {
 
 	async getInterfaces(): Promise<Response<InterfacesListDetailData>> {
 		return this.http!.get(this.cfg.endpoints.layers.interfaces)
+	}
+
+	async getBackupSource(): Promise<Response<SourceBackup>> {
+		return this.http!.get(this.cfg.endpoints.crtl.sourceBackup)
+	}
+
+	async setBackupSource(backupSource: SourceBackup): Promise<any> {
+		return this.http!.put(this.cfg.endpoints.crtl.sourceBackup, backupSource)
 	}
 }

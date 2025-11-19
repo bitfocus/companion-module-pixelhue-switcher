@@ -13,6 +13,7 @@ import { WebSocketClient } from './services/WebSocketClient.js'
 import { LayerPreset } from './interfaces/LayerPreset.js'
 import { Interface } from './interfaces/Interface.js'
 import { discoverDevices } from './services/Discovery.js'
+import { SourceBackup } from './interfaces/SourceBackup.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig // Setup in init()
@@ -26,6 +27,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	layers: Layer[] = []
 	layerPresets: LayerPreset[] = []
 	interfaces: Interface[] = []
+	sourceBackups: SourceBackup = { sourceBackup: { backup: [], enable: 0, primaryFirst: 0 } }
 	swapEnabled: boolean = true
 	effectTime: number = 1000
 	retryTimeout: NodeJS.Timeout | null = null
@@ -56,34 +58,55 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}
 
 		if (!this.config.host) {
-			this.updateStatus(InstanceStatus.BadConfig)
+			this.updateStatus(InstanceStatus.BadConfig, 'Host is required')
 			return
 		}
 
 		try {
-			// Discover devices first
 			const devices = await discoverDevices(this.config.host)
 			this.log('debug', `Discovered devices: ${JSON.stringify(devices)}`)
+
 			this.discoveredDevices = devices.map((d) => ({
 				id: d.SN,
 				label: `${d.deviceName || 'Device'} (${d.SN}) – ${d.ip}`,
 			}))
 
-			// If multiple devices and none selected yet, ask the user to pick one
-			if (devices.length > 1 && !this.config.deviceSn) {
-				this.updateStatus(InstanceStatus.BadConfig)
-				this.log('info', 'Multiple devices found. Please select which one to control in the config.')
-				// Stop here so Companion refreshes the config UI and shows the dropdown
+			if (devices.length === 0) {
+				this.updateStatus(InstanceStatus.BadConfig, 'No devices discovered.')
+				this.cleanup()
 				return
 			}
 
-			// Pick the device to use
-			const targetSn = this.config.deviceSn ?? devices[0]?.SN
-			if (!targetSn) throw new Error('No devices discovered.')
+			if (devices.length > 1 && !this.config.deviceSn) {
+				this.updateStatus(
+					InstanceStatus.BadConfig,
+					'Multiple devices found. Please select which one to control in the config.',
+				)
+				this.cleanup()
+				return
+			}
 
-			// Create ApiClient bound to that SN
+			if (this.config.deviceSn) {
+				const exists = devices.some((d) => d.SN === this.config.deviceSn)
+
+				if (!exists) {
+					this.updateStatus(
+						InstanceStatus.BadConfig,
+						`Configured device SN "${this.config.deviceSn}" not found. Please select a new device in the config.`,
+					)
+					this.log('warn', `Configured device SN "${this.config.deviceSn}" not found in discovery result.`)
+					this.cleanup()
+					return
+				}
+			}
+
+			const targetSn = this.config.deviceSn ?? devices[0].SN
+
 			this.apiClient = await ApiClient.create(this, this.config.host, { targetSn })
 			this.webSocket = await WebSocketClient.create(this, this.config.host, this.apiClient.token!)
+
+			this.log('debug', 'Initialization successful')
+			this.log('debug', `Using sourceBackups: ${JSON.stringify(this.sourceBackups)}`)
 
 			this.updateActions()
 			this.updateFeedbacks()
@@ -93,8 +116,15 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 			this.updateStatus(InstanceStatus.Ok)
 		} catch (err) {
-			this.log('error', `Initialization failed: ${err instanceof Error ? err.message : String(err)}`)
-			this.error()
+			const msg = err instanceof Error ? err.message : String(err)
+			this.log('error', `Initialization failed: ${msg}`)
+
+			if (msg.startsWith('No device with SN "') || msg === 'No devices discovered.') {
+				this.updateStatus(InstanceStatus.BadConfig, msg)
+				this.cleanup()
+			} else {
+				this.error()
+			}
 		}
 	}
 
@@ -114,10 +144,25 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.webSocket = null
 		}
 
+		this.screens = []
+		this.presets = []
+		this.layers = []
+		this.layerPresets = []
+		this.interfaces = []
+		this.sourceBackups = { sourceBackup: { backup: [], enable: 0, primaryFirst: 0 } }
+
 		this.setActionDefinitions({})
 		this.setFeedbackDefinitions({})
 		this.setVariableDefinitions([])
 		this.setPresetDefinitions({})
+
+		if (this.config?.deviceSn) {
+			this.log('info', `Clearing invalid device SN "${this.config.deviceSn}"`)
+			this.saveConfig({
+				...this.config,
+				deviceSn: undefined, // or ''
+			})
+		}
 	}
 
 	// Return config fields for web config

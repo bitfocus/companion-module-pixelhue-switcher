@@ -39,6 +39,9 @@ export interface MachineConfig {
 			layerPresetApply: string
 			interfaces: string
 		}
+		crtl: {
+			sourceBackup: string
+		}
 	}
 }
 

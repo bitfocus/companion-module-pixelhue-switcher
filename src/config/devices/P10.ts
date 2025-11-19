@@ -28,5 +28,8 @@ export const P10: MachineConfig = {
 			layerPresetApply: '/unico/v1/layers/layer-preset/apply',
 			interfaces: '/unico/v1/interface/list-detail',
 		},
+		crtl: {
+			sourceBackup: '/unico/v1/system/ctrl/source-backup',
+		},
 	},
 }

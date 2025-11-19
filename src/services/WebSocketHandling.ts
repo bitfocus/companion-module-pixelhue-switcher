@@ -4,6 +4,7 @@ import { Screen, ScreenSelectionData, UpdateLayoutData } from '../interfaces/Scr
 import { Preset, PresetListDetailData } from '../interfaces/Preset.js'
 import { WebsocketCallbackData } from '../interfaces/WebsocketCallbackData.js'
 import { realMerge } from '../utils/utils.js'
+import { SourceBackup } from '../interfaces/SourceBackup.js'
 
 export const MessageTypes = {
 	layersSelected: 0x81105,
@@ -23,6 +24,7 @@ export const MessageTypes = {
 	umdUpdated: 0x81113,
 	layerGeneralUpdated: 0x81109,
 	presetApplied: 0xa2100,
+	sourceBackupUpdated: 0x4050d,
 }
 
 export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message: WebsocketCallbackData) => void } = {
@@ -41,6 +43,7 @@ export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message:
 	[MessageTypes.umdUpdated]: umdUpdated,
 	[MessageTypes.layerGeneralUpdated]: layerGeneralUpdated,
 	[MessageTypes.presetApplied]: presetApplied,
+	[MessageTypes.sourceBackupUpdated]: sourceBackupUpdated,
 }
 
 export function layersSelected(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -232,4 +235,10 @@ export function presetApplied(self: ModuleInstance, message: WebsocketCallbackDa
 	})
 	self.checkFeedbacks('presetState')
 	self.checkFeedbacks('screenState')
+}
+
+export function sourceBackupUpdated(self: ModuleInstance, message: WebsocketCallbackData): void {
+	const sourceBackup: SourceBackup = message.data
+	realMerge(self.sourceBackups, sourceBackup)
+	self.updateActions()
 }

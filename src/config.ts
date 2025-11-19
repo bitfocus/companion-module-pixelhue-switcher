@@ -24,18 +24,14 @@ export class Config {
 				regex: Regex.IP,
 				required: true,
 			},
-			...(this.discoveredDevices.length > 1
-				? [
-						{
-							type: 'dropdown' as const,
-							id: 'deviceSn',
-							label: 'Discovered device',
-							width: 12,
-							choices: this.discoveredDevices,
-							default: this.config.deviceSn ?? this.discoveredDevices[0]?.id,
-						},
-					]
-				: []),
+			{
+				type: 'dropdown' as const,
+				id: 'deviceSn',
+				label: 'Discovered device',
+				width: 12,
+				choices: this.discoveredDevices,
+				default: this.config.deviceSn ?? this.discoveredDevices[0]?.id,
+			},
 		]
 	}
 }
