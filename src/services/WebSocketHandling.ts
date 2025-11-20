@@ -241,4 +241,5 @@ export function sourceBackupUpdated(self: ModuleInstance, message: WebsocketCall
 	const sourceBackup: SourceBackup = message.data
 	realMerge(self.sourceBackups, sourceBackup)
 	self.updateActions()
+	self.checkFeedbacks('sourceBackupState')
 }

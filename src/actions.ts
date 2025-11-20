@@ -647,12 +647,13 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			},
 		},
 		switchSourceBackup: {
-			name: 'Switch Source Backup',
+			name: 'Switch Input Backup',
+			description: 'Switches the selected Input Backup to use the backup source',
 			options: [
 				{
 					type: 'dropdown',
 					id: 'backupSourceId',
-					label: 'Source Backup',
+					label: 'Input Backup',
 					default: '',
 					choices: (self.sourceBackups.sourceBackup.backup ?? []).map((backup) => {
 						const interfaceLookup = buildInterfaceLookup(self.getInterfaces(2, 0))
