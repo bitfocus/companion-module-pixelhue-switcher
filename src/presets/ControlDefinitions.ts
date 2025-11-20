@@ -165,5 +165,28 @@ export function getControlPresetDefinitions(self: ModuleInstance): CompanionPres
 				},
 			],
 		},
+		switchBackupSource: {
+			type: 'button',
+			name: 'Switch Backup Source',
+			category: PRESET_CATEGORY.CONTROL,
+			style: {
+				text: 'Switch Backup\nSource',
+				size: 16,
+				color: combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 0, 0),
+			},
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'switchBackupSource',
+							options: {},
+						},
+					],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		},
 	}
 }

@@ -141,3 +141,9 @@ export function getScreensBySelection(self: ModuleInstance, event: CompanionActi
 		})
 	}
 }
+
+export function buildInterfaceLookup(
+	interfaces: { interfaceId: number; general: { name: string } }[],
+): Record<number, string> {
+	return Object.fromEntries(interfaces.map((int) => [int.interfaceId, int.general.name]))
+}

@@ -55,7 +55,7 @@ export class WebSocketClient {
 					return handlerId == parsedMessage.tag
 				})
 		) {
-			console.log(parsedMessage.tag)
+			this.instance.log('info', `WebSocket message received: ${JSON.stringify(parsedMessage)}`)
 			webSocketHandlers[parsedMessage.tag](this.instance, parsedMessage)
 		}
 	}

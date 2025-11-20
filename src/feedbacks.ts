@@ -3,6 +3,7 @@ import type { ModuleInstance } from './main.js'
 import { LoadIn } from './interfaces/Preset.js'
 import { DropdownChoice } from '@companion-module/base'
 import { SCREEN_TYPE } from './interfaces/Screen.js'
+import { buildInterfaceLookup } from './actionUtils.js'
 
 export function updateCompanionFeedbacks(self: ModuleInstance): void {
 	self.setFeedbackDefinitions({
@@ -241,6 +242,49 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 			],
 			callback: (feedback) => {
 				return self.getVariableValue('selected_layer') === feedback.options.layerId
+			},
+		},
+		sourceBackupState: {
+			name: 'Input Backup – backup active',
+			type: 'boolean',
+			description: 'Change style when the selected Input Bckup configuration is using the backup input',
+			defaultStyle: {
+				bgcolor: combineRgb(255, 0, 0),
+				color: combineRgb(255, 255, 255),
+			},
+			options: [
+				{
+					type: 'dropdown',
+					id: 'backupSourceId',
+					label: 'Source Backup',
+					default: '',
+					choices: (self.sourceBackups.sourceBackup.backup ?? []).map((backup): DropdownChoice => {
+						const interfaceLookup = buildInterfaceLookup(self.getInterfaces(2, 0))
+
+						const primaryLabel = interfaceLookup[backup.primarySourceId] ?? backup.primarySourceId
+						const backupLabel = interfaceLookup[backup.backupSourceId] ?? backup.backupSourceId
+
+						return {
+							id: backup.id,
+							label: `P: ${primaryLabel} - B: ${backupLabel}`,
+						}
+					}),
+				},
+			],
+			callback: (feedback) => {
+				const selectedId = Number(feedback.options.backupSourceId)
+				const currentSourceBackup = self.sourceBackups.sourceBackup
+
+				if (!currentSourceBackup || !currentSourceBackup.backup) return false
+
+				const entry = currentSourceBackup.backup.find((b) => b.id === selectedId)
+				if (!entry) return false
+
+				// Feedback is TRUE when we are currently using the *backup* source
+				const usingBackup =
+					entry.usingSourceId === entry.backupSourceId && entry.usingSourceType === entry.backupSourceType
+
+				return usingBackup
 			},
 		},
 	})
