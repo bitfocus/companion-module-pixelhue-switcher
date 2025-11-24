@@ -8,6 +8,15 @@ import { Layer, LayerBounds, LayerListDetailData, LayerUMD } from '../interfaces
 import { HttpClient } from './HttpClient.js'
 import { LayerPreset, LayerPresetListDetailData } from '../interfaces/LayerPreset.js'
 import { Interface, InterfacesListDetailData } from '../interfaces/Interface.js'
+import { MODEL_ID_TO_KEY, ModelKey } from '../config/modelMap.js'
+import { MACHINE_CONFIGS, MachineConfig } from '../config/machineConfig.js'
+import { SourceBackup } from '../interfaces/SourceBackup.js'
+
+type CreateOptions = {
+	model?: ModelKey
+	overrides?: Partial<Record<ModelKey, Partial<MachineConfig>>>
+	targetSn?: string
+}
 
 export class ApiClient {
 	http: HttpClient | null = null
@@ -16,22 +25,63 @@ export class ApiClient {
 	unicoPort = 19998
 
 	token: string | null = null
+	private cfg!: MachineConfig
 
 	private constructor() {}
 
-	static async create(instance: ModuleInstance, host: string): Promise<ApiClient> {
+	static async create(instance: ModuleInstance, host: string, opts: CreateOptions = {}): Promise<ApiClient> {
 		const client = new ApiClient()
 		client.host = host
-		await client.setup(instance)
+		await client.setup(instance, opts)
 		return client
 	}
 
-	async setup(instance: ModuleInstance): Promise<void> {
-		const devices = await this._getDeviceList()
-		this.apiPort = [...devices.data.list[0].protocols].find((protocol: any) => protocol.linkType === 'http').port
+	private pickConfig(model: ModelKey, overrides?: CreateOptions['overrides']): MachineConfig {
+		const base = MACHINE_CONFIGS[model]
+		const patch = overrides?.[model]
+		return {
+			...base,
+			...patch,
+			discovery: { ...base.discovery, ...patch?.discovery },
+			endpoints: {
+				...base.endpoints,
+				...patch?.endpoints,
+				screen: { ...base.endpoints.screen, ...patch?.endpoints?.screen },
+				preset: { ...base.endpoints.preset, ...patch?.endpoints?.preset },
+				layers: { ...base.endpoints.layers, ...patch?.endpoints?.layers },
+			},
+		}
+	}
+
+	async setup(instance: ModuleInstance, opts: CreateOptions): Promise<void> {
+		const discovery = await this._getDeviceList()
+		const list = discovery?.data?.list ?? []
+
+		const device = opts.targetSn ? list.find((d: any) => d.SN === opts.targetSn) : list[0]
+
+		const httpProto = device.protocols?.find((p: any) => p.linkType === 'http')
+		if (!httpProto?.port) throw new Error('HTTP protocol/port not found in discovery response.')
+
+		this.apiPort = httpProto.port
+
+		const modelFromId = MODEL_ID_TO_KEY[device.modelId as number] as ModelKey | undefined
+		const selectedModel: ModelKey = opts.model ?? modelFromId ?? 'PF' // sensible fallback
+		instance.log('debug', `Using model: ${selectedModel}`)
+
+		const isVirtual = device.SN.startsWith('virtual')
+		if (isVirtual) {
+			this.cfg = this.pickConfig('PF', opts.overrides)
+			instance.log('debug', `Switching to virtual using model: PF`)
+		} else {
+			this.cfg = this.pickConfig(selectedModel, opts.overrides)
+		}
+
+		this.unicoPort = this.cfg.discovery.port // keep in sync if needed
 		this.http = new HttpClient(this.host!, this.apiPort!)
+		instance.log('debug', `Using config: ${JSON.stringify(this.cfg)}`)
 
 		const openDetail = await this._getDeviceOpenDetail()
+		instance.log('debug', `Open Detail response: ${JSON.stringify(openDetail)}`)
 		const serialNumber = openDetail.data.sn
 		const startTime = openDetail.data.startTime
 		this.token = generateToken(serialNumber, startTime)
@@ -47,16 +97,15 @@ export class ApiClient {
 		const layerPresetsResponse = await this.getLayerPresets()
 		instance.log('debug', 'Get Interfaces')
 		const interfacesResponse = await this.getInterfaces()
+		instance.log('debug', 'Get Backup Sources')
+		const backupSourceResponse = await this.getBackupSource()
 
 		instance.screens = screenResponse.data.list
 		instance.presets = presetResponse.data.list
 		instance.layers = layerResponse.data.list
 		instance.layerPresets = layerPresetsResponse.data.list
 		instance.interfaces = interfacesResponse.data.list
-	}
-
-	async _getDeviceOpenDetail(): Promise<any> {
-		return got.get(`http://${this.host}:${this.apiPort}/unico/v1/node/open-detail`).json()
+		instance.sourceBackups = backupSourceResponse.data
 	}
 
 	async _getDeviceList(): Promise<any> {
@@ -69,37 +118,32 @@ export class ApiClient {
 			.json()
 	}
 
-	async take(screens: Screen[], swap: boolean = true, customEffect: boolean = false, time: number = 500): Promise<any> {
-		const body = screens.map((screen) => {
-			return {
-				direction: 0,
-				effectSelect: customEffect ? 1 : 0,
-				screenGuid: screen.guid,
-				screenId: screen.screenId,
-				screenName: screen.general.name,
-				swapEnable: swap ? 1 : 0,
-				switchEffect: {
-					type: 1,
-					time,
-				},
-			}
-		})
+	async _getDeviceOpenDetail(): Promise<any> {
+		return got.get(`http://${this.host}:${this.apiPort}/unico/v1/node/open-detail`).json()
+	}
 
-		return this.http!.put('/unico/v1/screen/take', body)
+	async take(screens: Screen[], swap: boolean = true, customEffect: boolean = false, time: number = 500): Promise<any> {
+		const body = screens.map((screen) => ({
+			direction: 0,
+			effectSelect: customEffect ? 1 : 0,
+			screenGuid: screen.guid,
+			screenId: screen.screenId,
+			screenName: screen.general.name,
+			swapEnable: swap ? 1 : 0,
+			switchEffect: { type: 1, time },
+		}))
+
+		return this.http!.put(this.cfg.endpoints.screen.take, body)
 	}
 
 	async cut(screens: Screen[], direction: number = 0, swap: boolean = true): Promise<any> {
-		const body = screens.map((screen) => {
-			return {
-				direction: +direction || 0,
-				screenId: screen.screenId,
-				swapEnable: swap ? 1 : 0,
-			}
-		})
+		const body = screens.map((screen) => ({
+			direction: +direction || 0,
+			screenId: screen.screenId,
+			swapEnable: swap ? 1 : 0,
+		}))
 
-		console.log(body)
-
-		return this.http!.put('/unico/v1/screen/cut', body)
+		return this.http!.put(this.cfg.endpoints.screen.cut, body)
 	}
 
 	async ftb(screens: Screen[], enable: boolean, time: number): Promise<any> {
@@ -120,7 +164,7 @@ export class ApiClient {
 			}
 		})
 
-		return this.http!.put('/unico/v1/screen/ftb', body)
+		return this.http!.put(this.cfg.endpoints.screen.ftb, body)
 	}
 
 	async freeze(screens: Screen[], enable: boolean | null): Promise<any> {
@@ -140,100 +184,51 @@ export class ApiClient {
 			}
 		})
 
-		return this.http!.put('/unico/v1/screen/freeze', body)
+		return this.http!.put(this.cfg.endpoints.screen.freeze, body)
 	}
 
 	async loadPreset(preset: Preset, targetRegion: number): Promise<any> {
 		const body = {
 			auxiliary: {
-				keyFrame: {
-					enable: 1,
-				},
-				switchEffect: {
-					type: 1,
-					time: 500,
-				},
+				keyFrame: { enable: 1 },
+				switchEffect: { type: 1, time: 500 },
 				swapEnable: 1,
-				effect: {
-					enable: 1,
-				},
+				effect: { enable: 1 },
 			},
 			serial: preset.serial,
-			targetRegion, //HTTP_PRESET_TYPE[this.config.presetType],
+			targetRegion,
 			presetId: preset.guid,
 		}
 
-		console.log(JSON.stringify(body))
-
-		return this.http!.post('/unico/v1/preset/apply', body)
+		return this.http!.post(this.cfg.endpoints.preset.apply, body)
 	}
 
 	async selectLayer(layerId: number, otherLayers: Layer[]): Promise<any> {
 		const body = [
-			{
-				layerId,
-				selected: 1,
-			},
-			...otherLayers
-				.filter((layer) => {
-					return layer.selected === 1
-				})
-				.map((layer) => {
-					return {
-						layerId: layer.layerId,
-						selected: 0,
-					}
-				}),
+			{ layerId, selected: 1 },
+			...otherLayers.filter((layer) => layer.selected === 1).map((layer) => ({ layerId: layer.layerId, selected: 0 })),
 		]
-
-		return this.http!.put('/unico/v1/screen/select', body)
+		return this.http!.put(this.cfg.endpoints.screen.select, body)
 	}
 
 	async bringSelectedTo(layerId: number, to: number): Promise<any> {
-		const body = [
-			{
-				layerId: layerId,
-				zorder: {
-					type: 1,
-					para: to,
-				},
-			},
-		]
-
-		return this.http!.put('/unico/v1/layers/zorder', body)
+		const body = [{ layerId, zorder: { type: 1, para: to } }]
+		return this.http!.put(this.cfg.endpoints.layers.zorder, body)
 	}
 
 	async applyLayerPreset(layerId: number, layerPreset: LayerPreset): Promise<any> {
-		const body = [
-			{
-				layerIds: [{ layerId }],
-				layerPreset: layerPreset,
-			},
-		]
-
-		return this.http!.put('/unico/v1/layers/layer-preset/apply', body)
+		const body = [{ layerIds: [{ layerId }], layerPreset }]
+		return this.http!.put(this.cfg.endpoints.layers.layerPresetApply, body)
 	}
 
 	async applyLayerBounds(layerId: number, bounds: LayerBounds): Promise<any> {
-		const body = [
-			{
-				layerId,
-				window: bounds,
-			},
-		]
-
-		return this.http!.put('/unico/v1/layers/window', body)
+		const body = [{ layerId, window: bounds }]
+		return this.http!.put(this.cfg.endpoints.layers.window, body)
 	}
 
 	async applyUMD(layerId: number, umd: LayerUMD[]): Promise<any> {
-		const body = [
-			{
-				layerId,
-				UMD: umd,
-			},
-		]
-
-		return this.http!.put('/unico/v1/layers/umd', body)
+		const body = [{ layerId, UMD: umd }]
+		return this.http!.put(this.cfg.endpoints.layers.umd, body)
 	}
 
 	async setInputOnLayer(layer: Layer, input: Interface): Promise<any> {
@@ -250,26 +245,34 @@ export class ApiClient {
 			},
 		]
 
-		return this.http!.put('/unico/v1/layers/source', body)
+		return this.http!.put(this.cfg.endpoints.layers.source, body)
 	}
 
 	async getScreens(): Promise<Response<ScreenListDetailData>> {
-		return this.http!.get('/unico/v1/screen/list-detail')
+		return this.http!.get(this.cfg.endpoints.screen.listDetail)
 	}
 
 	async getPresets(): Promise<Response<PresetListDetailData>> {
-		return this.http!.get('/unico/v1/preset')
+		return this.http!.get(this.cfg.endpoints.preset.list)
 	}
 
 	async getLayers(): Promise<Response<LayerListDetailData>> {
-		return this.http!.get('/unico/v1/layers/list-detail')
+		return this.http!.get(this.cfg.endpoints.layers.listDetail)
 	}
 
 	async getLayerPresets(): Promise<Response<LayerPresetListDetailData>> {
-		return this.http!.get('/unico/v1/layers/layer-preset/list-detail')
+		return this.http!.get(this.cfg.endpoints.layers.layerPresetListDetail)
 	}
 
 	async getInterfaces(): Promise<Response<InterfacesListDetailData>> {
-		return this.http!.get('/unico/v1/interface/list-detail')
+		return this.http!.get(this.cfg.endpoints.layers.interfaces)
+	}
+
+	async getBackupSource(): Promise<Response<SourceBackup>> {
+		return this.http!.get(this.cfg.endpoints.crtl.sourceBackup)
+	}
+
+	async setBackupSource(backupSource: SourceBackup): Promise<any> {
+		return this.http!.put(this.cfg.endpoints.crtl.sourceBackup, backupSource)
 	}
 }

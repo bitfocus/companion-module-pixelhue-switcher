@@ -2,24 +2,36 @@ import { Regex, type SomeCompanionConfigField } from '@companion-module/base'
 
 export interface ModuleConfig {
 	host: string
+	deviceSn?: string
 }
 
-export function GetConfigFields(): SomeCompanionConfigField[] {
-	return [
-		{
-			type: 'static-text',
-			id: 'info',
-			width: 12,
-			label: 'Information',
-			value: 'This module will allow you to control the following Pixelhue products: F4, F4 Lite, F8, P10, P20 and Q8.',
-		},
-		{
-			type: 'textinput',
-			id: 'host',
-			label: 'IP Address',
-			width: 6,
-			regex: Regex.IP,
-			required: true,
-		},
-	]
+export class Config {
+	private discoveredDevices: { id: string; label: string }[]
+	private config: ModuleConfig
+
+	constructor(discoveredDevices: { id: string; label: string }[], config: ModuleConfig) {
+		this.discoveredDevices = discoveredDevices
+		this.config = config
+	}
+
+	public GetConfigFields(): SomeCompanionConfigField[] {
+		return [
+			{
+				type: 'textinput',
+				id: 'host',
+				label: 'Machine address or PixelFlow address',
+				width: 6,
+				regex: Regex.IP,
+				required: true,
+			},
+			{
+				type: 'dropdown' as const,
+				id: 'deviceSn',
+				label: 'Discovered device',
+				width: 12,
+				choices: this.discoveredDevices,
+				default: this.config.deviceSn ?? this.discoveredDevices[0]?.id,
+			},
+		]
+	}
 }

@@ -2,6 +2,7 @@ import type { ModuleInstance } from './main.js'
 import { DropdownChoice } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
 import {
+	buildInterfaceLookup,
 	getLayerBySelection,
 	getLayerSelectionOptions,
 	getScreensBySelection,
@@ -10,11 +11,13 @@ import {
 import { LayerBounds, LayerUMD } from './interfaces/Layer.js'
 import { HTTPError } from 'got'
 import { SCREEN_TYPE } from './interfaces/Screen.js'
+import { SourceBackup } from './interfaces/SourceBackup.js'
 
 export function updateCompanionActions(self: ModuleInstance): void {
 	self.setActionDefinitions({
 		take: {
 			name: 'TAKE',
+			description: 'Perform a TAKE on global selected screens',
 			options: [
 				{
 					type: 'checkbox',
@@ -44,6 +47,109 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					)
 				} catch (error: any) {
 					self.log('error', (error as HTTPError).message)
+				}
+			},
+		},
+		takeSingleScreen: {
+			name: 'TAKE Single Screen',
+			description: 'Perform a TAKE on a single screen from dropdown',
+			options: [
+				{
+					type: 'checkbox',
+					label: 'Custom time',
+					id: 'customTimeEnabled',
+					default: false,
+				},
+				{
+					type: 'textinput',
+					label: 'Time',
+					id: 'time',
+					isVisibleExpression: '$(options:customTimeEnabled)',
+					required: true,
+					default: '500',
+					useVariables: true,
+				},
+				{
+					type: 'dropdown',
+					label: 'Screen',
+					id: 'screenId',
+					default: self.screens[0].screenId,
+					choices: self.screens.map((screen): DropdownChoice => {
+						return {
+							id: screen.screenId,
+							label: screen.general.name,
+						}
+					}),
+				},
+			],
+			callback: async (event, context) => {
+				try {
+					const parsedTime = await context.parseVariablesInString(<string>event.options.time)
+					const screensToTake = self.screens.filter((screen) => event.options.screenId === screen.screenId)
+					await self.apiClient?.take(
+						screensToTake,
+						self.swapEnabled,
+						!!event.options.customTimeEnabled!,
+						event.options.customTimeEnabled ? parseInt(parsedTime) : self.effectTime,
+					)
+				} catch (error: any) {
+					self.log('error', (error as HTTPError).message)
+				}
+			},
+		},
+		takeMultipleScreen: {
+			name: 'TAKE Multiple Screen',
+			description: 'Perform a TAKE on chosen screen',
+			options: [
+				{
+					type: 'checkbox',
+					label: 'Custom time',
+					id: 'customTimeEnabled',
+					default: false,
+				},
+				{
+					type: 'textinput',
+					label: 'Time',
+					id: 'time',
+					isVisibleExpression: '$(options:customTimeEnabled)',
+					required: true,
+					default: '500',
+					useVariables: true,
+				},
+				{
+					type: 'multidropdown',
+					label: 'Screen',
+					id: 'screenId',
+					default: self.screens.length ? [self.screens[0].screenId] : [],
+					choices: self.screens.map((screen): DropdownChoice => {
+						return {
+							id: screen.screenId,
+							label: screen.general.name,
+						}
+					}),
+				},
+			],
+			callback: async (event, context) => {
+				try {
+					const parsedTime = await context.parseVariablesInString(<string>event.options.time)
+
+					const selectedScreenIds = (event.options.screenId ?? []) as number[]
+
+					const screensToTake = self.screens.filter((screen) => selectedScreenIds.includes(screen.screenId))
+
+					if (screensToTake.length === 0) {
+						self.log('warn', 'Take called with no screens selected')
+						return
+					}
+
+					await self.apiClient?.take(
+						screensToTake,
+						self.swapEnabled,
+						!!event.options.customTimeEnabled!,
+						event.options.customTimeEnabled ? parseInt(parsedTime) : self.effectTime,
+					)
+				} catch (error: any) {
+					self.log('error', error.message)
 				}
 			},
 		},
@@ -536,6 +642,64 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					await self.apiClient?.setInputOnLayer(layer, input)
 				} catch (error: any) {
 					self.log('error', 'inputOnLayer send error')
+					self.log('error', error)
+				}
+			},
+		},
+		switchSourceBackup: {
+			name: 'Switch Input Backup',
+			description: 'Switches the selected Input Backup to use the backup source',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'backupSourceId',
+					label: 'Input Backup',
+					default: '',
+					choices: (self.sourceBackups.sourceBackup.backup ?? []).map((backup) => {
+						const interfaceLookup = buildInterfaceLookup(self.getInterfaces(2, 0))
+
+						const primaryLabel = interfaceLookup[backup.primarySourceId] ?? backup.primarySourceId
+						const backupLabel = interfaceLookup[backup.backupSourceId] ?? backup.backupSourceId
+
+						return {
+							id: backup.id,
+							label: `P: ${primaryLabel} - B: ${backupLabel}`,
+						}
+					}),
+				},
+			],
+			callback: async (event) => {
+				const selectedId = Number(event.options.backupSourceId)
+
+				const currentSourceBackup = self.sourceBackups.sourceBackup
+				if (!currentSourceBackup || !currentSourceBackup.backup) return
+
+				try {
+					const newBackupSource: SourceBackup = {
+						sourceBackup: {
+							...currentSourceBackup,
+							backup: currentSourceBackup.backup.map((backup) => {
+								if (backup.id !== selectedId) {
+									return backup
+								}
+
+								const usingPrimary =
+									backup.usingSourceId === backup.primarySourceId && backup.usingSourceType === backup.primarySourceType
+
+								return {
+									...backup,
+									primaryFirst: 0,
+									usingSourceId: usingPrimary ? backup.backupSourceId : backup.primarySourceId,
+									usingSourceType: usingPrimary ? backup.backupSourceType : backup.primarySourceType,
+								}
+							}),
+						},
+					}
+
+					self.log('debug', `Setting new backup source: ${JSON.stringify(newBackupSource)}`)
+					await self.apiClient?.setBackupSource(newBackupSource)
+				} catch (error: any) {
+					self.log('error', 'switchSourceBackup send error')
 					self.log('error', error)
 				}
 			},
