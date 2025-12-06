@@ -120,6 +120,7 @@ export function presetCreated(self: ModuleInstance, message: WebsocketCallbackDa
 	self.presets.push(newPreset)
 	self.updateVariableDefinitions()
 	self.updateVariableValues()
+	self.updateActions()
 }
 
 export function globalFtbChanged(self: ModuleInstance, message: WebsocketCallbackData): void {
