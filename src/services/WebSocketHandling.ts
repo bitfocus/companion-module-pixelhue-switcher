@@ -25,6 +25,7 @@ export const MessageTypes = {
 	layerGeneralUpdated: 0x81109,
 	presetApplied: 0xa2100,
 	sourceBackupUpdated: 0x4050d,
+	presetDeleted: 0xa2106,
 }
 
 export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message: WebsocketCallbackData) => void } = {
@@ -44,6 +45,7 @@ export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message:
 	[MessageTypes.layerGeneralUpdated]: layerGeneralUpdated,
 	[MessageTypes.presetApplied]: presetApplied,
 	[MessageTypes.sourceBackupUpdated]: sourceBackupUpdated,
+	[MessageTypes.presetDeleted]: presetDeleted,
 }
 
 export function layersSelected(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -118,6 +120,18 @@ export function presetCreated(self: ModuleInstance, message: WebsocketCallbackDa
 	const newPreset: Preset = message.data
 	self.presets = self.presets.filter((preset) => preset.serial !== newPreset.serial)
 	self.presets.push(newPreset)
+	self.updateVariableDefinitions()
+	self.updateVariableValues()
+	self.updateActions()
+}
+
+export function presetDeleted(self: ModuleInstance, message: WebsocketCallbackData): void {
+	const index = self.presets.findIndex((preset) => preset.guid === String(message.data))
+
+	if (index !== -1) {
+		self.presets.splice(index, 1)
+	}
+
 	self.updateVariableDefinitions()
 	self.updateVariableValues()
 	self.updateActions()
