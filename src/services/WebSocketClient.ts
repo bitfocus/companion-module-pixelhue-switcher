@@ -10,6 +10,12 @@ export class WebSocketClient {
 	private token: string
 	private socket: WebSocket | null = null
 
+	private readonly onMessage = (data: WebSocket.RawData) => this.messageReceived(data)
+	private readonly onError = () => this.instance.error()
+	private readonly onClose = () => this.instance.error()
+
+	private decoder = new TextDecoder()
+
 	constructor(instance: ModuleInstance, host: string, token: string) {
 		this.instance = instance
 		this.host = host
@@ -23,8 +29,6 @@ export class WebSocketClient {
 	}
 
 	connect(): void {
-		this.disconnect()
-
 		this.socket = new WebSocket(`wss://${this.host}:19998/unico/v1/ucenter/ws?client-type=8`, {
 			headers: {
 				Authorization: this.token,
@@ -32,14 +36,20 @@ export class WebSocketClient {
 			rejectUnauthorized: false,
 		})
 
-		this.socket.on('message', this.messageReceived.bind(this))
-		this.socket.on('error', () => this.instance.error())
-		this.socket.on('close', () => this.instance.error())
+		this.socket.on('message', this.onMessage)
+		this.socket.on('error', this.onError)
+		this.socket.on('close', this.onClose)
 	}
 
 	disconnect(): void {
-		if (this.socket && this.socket.readyState !== WebSocket.CLOSED) {
-			this.socket.terminate()
+		if (this.socket) {
+			this.socket.off?.('message', this.onMessage)
+			this.socket.off?.('error', this.onError)
+			this.socket.off?.('close', this.onClose)
+
+			if (this.socket.readyState !== WebSocket.CLOSED) {
+				this.socket.terminate()
+			}
 		}
 		this.socket = null
 	}
@@ -48,6 +58,8 @@ export class WebSocketClient {
 		if (!(data instanceof Buffer)) return
 
 		const parsedMessage = this.parseTLVBuffer(Buffer.from(data))
+		//this.instance.log('info', `WebSocket message received: ${JSON.stringify(parsedMessage)}`)
+
 		if (
 			Object.keys(webSocketHandlers)
 				.map(Number)
@@ -68,7 +80,7 @@ export class WebSocketClient {
 		const tlv1Length = dataView.getUint16(TLV1_OFFSET + 6, true)
 		const tlv1Start = TLV1_OFFSET + 8
 		const tlv1End = tlv1Start + tlv1Length
-		const tlv1JsonStr = new TextDecoder().decode(buffer.subarray(tlv1Start, tlv1End))
+		const tlv1JsonStr = this.decoder.decode(buffer.subarray(tlv1Start, tlv1End))
 		const header = JSON.parse(tlv1JsonStr)
 
 		// === TLV2 ===
@@ -80,7 +92,7 @@ export class WebSocketClient {
 
 		const tlv2Start = tlv2Offset + 8
 		const tlv2End = tlv2Start + totalLength
-		const tlv2JsonStr = new TextDecoder().decode(buffer.subarray(tlv2Start, tlv2End))
+		const tlv2JsonStr = this.decoder.decode(buffer.subarray(tlv2Start, tlv2End))
 		const data = JSON.parse(tlv2JsonStr || '{}')
 
 		return {

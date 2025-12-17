@@ -7,3 +7,4 @@ DEBUG-*
 /.yarn
 .idea
 .DS_Store
+.vscode/

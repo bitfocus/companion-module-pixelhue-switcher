@@ -164,6 +164,8 @@ export class ApiClient {
 			}
 		})
 
+		console.log('debug', `FTB Body: ${JSON.stringify(body)}`)
+
 		return this.http!.put(this.cfg.endpoints.screen.ftb, body)
 	}
 

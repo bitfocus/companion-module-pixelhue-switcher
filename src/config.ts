@@ -1,5 +1,12 @@
 import { Regex, type SomeCompanionConfigField } from '@companion-module/base'
 
+export const defaultConfig = (): ModuleConfig => {
+	return {
+		host: '',
+		deviceSn: '',
+	}
+}
+
 export interface ModuleConfig {
 	host: string
 	deviceSn?: string
@@ -30,7 +37,7 @@ export class Config {
 				label: 'Discovered device',
 				width: 12,
 				choices: this.discoveredDevices,
-				default: this.config.deviceSn ?? this.discoveredDevices[0]?.id,
+				default: this.config.deviceSn || '',
 			},
 		]
 	}
