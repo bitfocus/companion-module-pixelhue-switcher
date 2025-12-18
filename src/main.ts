@@ -67,7 +67,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const devices = await discoverDevices(this.config.host)
 			this.log('debug', `Discovered devices: ${JSON.stringify(devices)}`)
 
-			this.discoveredDevices = devices.map((d) => ({
+			/*this.discoveredDevices = devices.map((d) => ({
 				id: d.SN,
 				label: `${d.deviceName || 'Device'} (${d.SN}) – ${d.ip}`,
 			}))
@@ -87,7 +87,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				this.cleanup()
 				return
 			}
-
+			
 			if (this.config.deviceSn) {
 				const exists = devices.some((d) => d.SN === this.config.deviceSn)
 
@@ -107,9 +107,9 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 					this.cleanup()
 					return
 				}
-			}
+			}*/
 
-			const targetSn = this.config.deviceSn ?? devices[0].SN
+			const targetSn = devices[0].SN //this.config.deviceSn ?? devices[0].SN
 			this.apiClient = await ApiClient.create(this, this.config.host, { targetSn })
 			this.webSocket = await WebSocketClient.create(this, this.config.host, this.apiClient.token!)
 
@@ -126,7 +126,6 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 			this.saveConfig({
 				...this.config,
-				deviceSn: targetSn,
 			})
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err)
@@ -180,7 +179,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.apiClient = null
 	}
 
-	private scheduleRediscover() {
+	/*private scheduleRediscover() {
 		if (this.retryTimeout) return // already scheduled
 
 		this.log('info', 'No devices discovered. Will retry discovery in 5 seconds...')
@@ -188,11 +187,11 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.retryTimeout = setTimeout(() => {
 			void this.configUpdated.bind(this)(this.config)
 		}, 5000)
-	}
+	}*/
 
 	// Return config fields for web config
 	getConfigFields(): SomeCompanionConfigField[] {
-		return new Config(this.discoveredDevices, this.config).GetConfigFields()
+		return new Config().GetConfigFields()
 	}
 
 	updateActions(): void {

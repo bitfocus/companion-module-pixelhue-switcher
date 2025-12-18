@@ -169,7 +169,7 @@ export function getPresetsPresetDefinitions(self: ModuleInstance): CompanionPres
 						color: combineRgb(255, 255, 255),
 					},
 					options: {
-						guid: preset.serial,
+						presetId: preset.serial,
 						loadIn: LoadIn.program,
 					},
 				},
