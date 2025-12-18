@@ -1,5 +1,5 @@
 import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField } from '@companion-module/base'
-import { Config, type ModuleConfig } from './config.js'
+import { Config, defaultConfig, type ModuleConfig } from './config.js'
 import { updateCompanionVariableDefinitions, updateVariableValues } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
 import { updateCompanionActions } from './actions.js'
@@ -16,7 +16,7 @@ import { discoverDevices } from './services/Discovery.js'
 import { SourceBackup } from './interfaces/SourceBackup.js'
 
 export class ModuleInstance extends InstanceBase<ModuleConfig> {
-	config!: ModuleConfig // Setup in init()
+	config: ModuleConfig = defaultConfig() // Setup in init()
 	apiClient: ApiClient | null = null
 	webSocket: WebSocketClient | null = null
 
@@ -43,7 +43,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	async init(config: ModuleConfig): Promise<void> {
 		await this.configUpdated(config)
 	}
-	// When module gets deleted
+
 	async destroy(): Promise<void> {
 		this.cleanup()
 		this.log('debug', 'destroy')
@@ -56,6 +56,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			clearTimeout(this.retryTimeout)
 			this.retryTimeout = null
 		}
+		this.cleanupConnections()
 
 		if (!this.config.host) {
 			this.updateStatus(InstanceStatus.BadConfig, 'Host is required')
@@ -66,13 +67,14 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			const devices = await discoverDevices(this.config.host)
 			this.log('debug', `Discovered devices: ${JSON.stringify(devices)}`)
 
-			this.discoveredDevices = devices.map((d) => ({
+			/*this.discoveredDevices = devices.map((d) => ({
 				id: d.SN,
 				label: `${d.deviceName || 'Device'} (${d.SN}) – ${d.ip}`,
 			}))
 
 			if (devices.length === 0) {
 				this.updateStatus(InstanceStatus.BadConfig, 'No devices discovered.')
+				this.scheduleRediscover()
 				this.cleanup()
 				return
 			}
@@ -85,7 +87,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				this.cleanup()
 				return
 			}
-
+			
 			if (this.config.deviceSn) {
 				const exists = devices.some((d) => d.SN === this.config.deviceSn)
 
@@ -95,13 +97,19 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 						`Configured device SN "${this.config.deviceSn}" not found. Please select a new device in the config.`,
 					)
 					this.log('warn', `Configured device SN "${this.config.deviceSn}" not found in discovery result.`)
+
+					this.log('info', `Clearing invalid device SN "${this.config.deviceSn}"`)
+					this.saveConfig({
+						...this.config,
+						deviceSn: undefined,
+					})
+
 					this.cleanup()
 					return
 				}
-			}
+			}*/
 
-			const targetSn = this.config.deviceSn ?? devices[0].SN
-
+			const targetSn = devices[0].SN //this.config.deviceSn ?? devices[0].SN
 			this.apiClient = await ApiClient.create(this, this.config.host, { targetSn })
 			this.webSocket = await WebSocketClient.create(this, this.config.host, this.apiClient.token!)
 
@@ -115,6 +123,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			this.updateVariableValues()
 
 			this.updateStatus(InstanceStatus.Ok)
+
+			this.saveConfig({
+				...this.config,
+			})
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err)
 			this.log('error', `Initialization failed: ${msg}`)
@@ -123,6 +135,7 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				this.updateStatus(InstanceStatus.BadConfig, msg)
 				this.cleanup()
 			} else {
+				this.updateStatus(InstanceStatus.ConnectionFailure, msg)
 				this.error()
 			}
 		}
@@ -132,17 +145,18 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.updateStatus(InstanceStatus.ConnectionFailure)
 		this.cleanup()
 
+		if (this.retryTimeout != null) {
+			// A retry is already scheduled; don't queue more
+			return
+		}
+
 		this.retryTimeout = setTimeout(() => {
 			void this.configUpdated.bind(this)(this.config)
 		}, 5000)
 	}
 
 	cleanup(): void {
-		this.apiClient = null
-		if (this.webSocket) {
-			this.webSocket.disconnect()
-			this.webSocket = null
-		}
+		this.cleanupConnections()
 
 		this.screens = []
 		this.presets = []
@@ -155,19 +169,29 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.setFeedbackDefinitions({})
 		this.setVariableDefinitions([])
 		this.setPresetDefinitions({})
-
-		if (this.config?.deviceSn) {
-			this.log('info', `Clearing invalid device SN "${this.config.deviceSn}"`)
-			this.saveConfig({
-				...this.config,
-				deviceSn: undefined, // or ''
-			})
-		}
 	}
+
+	private cleanupConnections(): void {
+		if (this.webSocket) {
+			this.webSocket.disconnect()
+			this.webSocket = null
+		}
+		this.apiClient = null
+	}
+
+	/*private scheduleRediscover() {
+		if (this.retryTimeout) return // already scheduled
+
+		this.log('info', 'No devices discovered. Will retry discovery in 5 seconds...')
+
+		this.retryTimeout = setTimeout(() => {
+			void this.configUpdated.bind(this)(this.config)
+		}, 5000)
+	}*/
 
 	// Return config fields for web config
 	getConfigFields(): SomeCompanionConfigField[] {
-		return new Config(this.discoveredDevices, this.config).GetConfigFields()
+		return new Config().GetConfigFields()
 	}
 
 	updateActions(): void {

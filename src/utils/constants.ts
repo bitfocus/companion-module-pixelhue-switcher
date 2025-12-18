@@ -7,4 +7,5 @@ export const PRESET_CATEGORY = {
 	PREVIEW: 'Presets in Preview',
 	PROGRAM: 'Presets in Program',
 	DISPLAY: 'Display',
+	BACKUP: 'Input Backups',
 } as const
