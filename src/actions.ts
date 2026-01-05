@@ -193,11 +193,11 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						},
 						{
 							id: 0,
-							label: 'Enable',
+							label: 'Disable',
 						},
 						{
 							id: 1,
-							label: 'Disable',
+							label: 'Enable',
 						},
 					],
 				},

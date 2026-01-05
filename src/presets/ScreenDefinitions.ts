@@ -66,7 +66,7 @@ export function getScreenPresetDefinitions(self: ModuleInstance): CompanionPrese
 						color: combineRgb(255, 255, 255),
 					},
 					options: {
-						screenId: screen.screenId,
+						screenId: screen.guid,
 					},
 				},
 			],
