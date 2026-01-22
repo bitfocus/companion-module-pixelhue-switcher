@@ -114,6 +114,8 @@ export function updatePresets(self: ModuleInstance, presets: Preset[]): void {
 	self.checkFeedbacks('presetState')
 	self.updateVariableValues()
 	self.updatePresets()
+	self.updateFeedbacks()
+	self.updatePresets()
 }
 
 export function presetCreated(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -123,6 +125,8 @@ export function presetCreated(self: ModuleInstance, message: WebsocketCallbackDa
 	self.updateVariableDefinitions()
 	self.updateVariableValues()
 	self.updateActions()
+	self.updateFeedbacks()
+	self.updatePresets()
 }
 
 export function presetDeleted(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -135,6 +139,8 @@ export function presetDeleted(self: ModuleInstance, message: WebsocketCallbackDa
 	self.updateVariableDefinitions()
 	self.updateVariableValues()
 	self.updateActions()
+	self.updatePresets()
+	self.updateFeedbacks()
 }
 
 export function globalFtbChanged(self: ModuleInstance, message: WebsocketCallbackData): void {
