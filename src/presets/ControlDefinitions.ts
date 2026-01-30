@@ -5,6 +5,12 @@ import { LoadIn } from '../interfaces/Preset.js'
 
 export function getControlPresetDefinitions(self: ModuleInstance): CompanionPresetDefinitions {
 	return {
+		globalControLabel: {
+			type: 'text',
+			category: PRESET_CATEGORY.CONTROL,
+			text: 'General Control presets',
+			name: 'General Control',
+		},
 		take: {
 			type: 'button',
 			name: 'TAKE',
