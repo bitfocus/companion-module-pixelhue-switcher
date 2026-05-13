@@ -13,6 +13,7 @@ export const P80: MachineConfig = {
 			freeze: '/unico/v1/screen/freeze',
 			select: '/unico/v1/screen/select',
 			listDetail: '/unico/v1/screen/list-detail',
+			testPattern: '/unico/v1/screen/test-pattern',
 		},
 		preset: {
 			list: '/unico/v1/preset',
@@ -27,6 +28,7 @@ export const P80: MachineConfig = {
 			layerPresetListDetail: '/unico/v1/layers/layer-preset/list-detail',
 			layerPresetApply: '/unico/v1/layers/layer-preset/apply',
 			interfaces: '/unico/v1/interface/list-detail',
+			cropSource: '/unico/v1/interface/crop-source',
 		},
 		crtl: {
 			sourceBackup: '/unico/v1/system/ctrl/source-backup',

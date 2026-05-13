@@ -1,4 +1,5 @@
 import got from 'got'
+import { filterValidPresets, filterValidScreens } from '../utils/listFilters.js'
 import { generateToken } from '../utils/utils.js'
 import { ModuleInstance } from '../main.js'
 import { Screen, ScreenListDetailData } from '../interfaces/Screen.js'
@@ -8,14 +9,17 @@ import { Layer, LayerBounds, LayerListDetailData, LayerUMD } from '../interfaces
 import { HttpClient } from './HttpClient.js'
 import { LayerPreset, LayerPresetListDetailData } from '../interfaces/LayerPreset.js'
 import { Interface, InterfacesListDetailData } from '../interfaces/Interface.js'
+import { CropSource, CropSourcesListDetailData } from '../interfaces/CropSource.js'
 import { MODEL_ID_TO_KEY, ModelKey } from '../config/modelMap.js'
 import { MACHINE_CONFIGS, MachineConfig } from '../config/machineConfig.js'
 import { SourceBackup } from '../interfaces/SourceBackup.js'
+import { TestPatternPayload } from '../interfaces/TestPattern.js'
 
 type CreateOptions = {
 	model?: ModelKey
 	overrides?: Partial<Record<ModelKey, Partial<MachineConfig>>>
 	targetSn?: string
+	includeClientType?: boolean
 }
 
 export class ApiClient {
@@ -54,7 +58,7 @@ export class ApiClient {
 	}
 
 	async setup(instance: ModuleInstance, opts: CreateOptions): Promise<void> {
-		const discovery = await this._getDeviceList()
+		const discovery = await this._getDeviceList(opts.includeClientType ?? false)
 		const list = discovery?.data?.list ?? []
 
 		const device = opts.targetSn ? list.find((d: any) => d.SN === opts.targetSn) : list[0]
@@ -85,6 +89,7 @@ export class ApiClient {
 		const serialNumber = openDetail.data.sn
 		const startTime = openDetail.data.startTime
 		this.token = generateToken(serialNumber, startTime)
+		instance.log('debug', `Token: ${this.token}`)
 		this.http.setToken(this.token)
 
 		instance.log('debug', 'Get Screens')
@@ -97,6 +102,8 @@ export class ApiClient {
 		const layerPresetsResponse = await this.getLayerPresets()
 		instance.log('debug', 'Get Interfaces')
 		const interfacesResponse = await this.getInterfaces()
+		instance.log('debug', 'Get Crop Sources')
+		const cropSourcesResponse = await this.getCropSources()
 		instance.log('debug', 'Get Backup Sources')
 		const backupSourceResponse = await this.getBackupSource()
 
@@ -105,12 +112,16 @@ export class ApiClient {
 		instance.layers = layerResponse.data.list
 		instance.layerPresets = layerPresetsResponse.data.list
 		instance.interfaces = interfacesResponse.data.list
+		instance.cropSources = cropSourcesResponse.data.list
 		instance.sourceBackups = backupSourceResponse.data
 	}
 
-	async _getDeviceList(): Promise<any> {
+	async _getDeviceList(includeClientType: boolean = false): Promise<any> {
+		const url = includeClientType
+			? `https://${this.host}:${this.unicoPort}/unico/v1/ucenter/device-list?clientType=8`
+			: `https://${this.host}:${this.unicoPort}/unico/v1/ucenter/device-list`
 		return got
-			.get(`https://${this.host}:${this.unicoPort}/unico/v1/ucenter/device-list`, {
+			.get(url, {
 				https: {
 					rejectUnauthorized: false,
 				},
@@ -189,6 +200,15 @@ export class ApiClient {
 		return this.http!.put(this.cfg.endpoints.screen.freeze, body)
 	}
 
+	async selectScreens(screens: Screen[]): Promise<any> {
+		const body = screens.map((screen) => ({
+			screenId: screen.screenId,
+			select: screen.select,
+			screenName: screen.general.name,
+		}))
+		return this.http!.put(this.cfg.endpoints.screen.select, body)
+	}
+
 	async loadPreset(preset: Preset, targetRegion: number): Promise<any> {
 		const body = {
 			auxiliary: {
@@ -250,12 +270,60 @@ export class ApiClient {
 		return this.http!.put(this.cfg.endpoints.layers.source, body)
 	}
 
+	async setCropSourceOnLayer(layer: Layer, cropSource: CropSource, mainSource?: Interface): Promise<any> {
+		const connectorType = mainSource?.auxiliaryInfo.connectorInfo.type
+
+		const body = [
+			{
+				layerId: layer.layerId,
+				source: {
+					general: {
+						sourceId: cropSource.cropId,
+						sourceType: 8,
+						connectorType: connectorType,
+					},
+				},
+			},
+		]
+
+		return this.http!.put(this.cfg.endpoints.layers.source, body)
+	}
+
+	async setTestPatternOnScreen(screen: Screen, payload: TestPatternPayload): Promise<any> {
+		const body = [
+			{
+				screenId: screen.screenId,
+				testPattern: payload,
+			},
+		]
+
+		return this.http!.put(this.cfg.endpoints.screen.testPattern, body)
+	}
+
 	async getScreens(): Promise<Response<ScreenListDetailData>> {
-		return this.http!.get(this.cfg.endpoints.screen.listDetail)
+		const res = await this.http!.get<Response<ScreenListDetailData>>(this.cfg.endpoints.screen.listDetail)
+		const list = filterValidScreens(Array.isArray(res.data?.list) ? res.data.list : [])
+		return {
+			...res,
+			data: {
+				...res.data,
+				list,
+				totalCount: list.length,
+			},
+		}
 	}
 
 	async getPresets(): Promise<Response<PresetListDetailData>> {
-		return this.http!.get(this.cfg.endpoints.preset.list)
+		const res = await this.http!.get<Response<PresetListDetailData>>(this.cfg.endpoints.preset.list)
+		const list = filterValidPresets(Array.isArray(res.data?.list) ? res.data.list : [])
+		return {
+			...res,
+			data: {
+				...res.data,
+				list,
+				totalCount: list.length,
+			},
+		}
 	}
 
 	async getLayers(): Promise<Response<LayerListDetailData>> {
@@ -268,6 +336,10 @@ export class ApiClient {
 
 	async getInterfaces(): Promise<Response<InterfacesListDetailData>> {
 		return this.http!.get(this.cfg.endpoints.layers.interfaces)
+	}
+
+	async getCropSources(): Promise<Response<CropSourcesListDetailData>> {
+		return this.http!.get(this.cfg.endpoints.layers.cropSource)
 	}
 
 	async getBackupSource(): Promise<Response<SourceBackup>> {

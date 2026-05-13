@@ -7,7 +7,8 @@ export interface Interface {
 	auxiliaryInfo: InterfaceAuxiliaryInfo
 	general: InterfaceGeneral
 	interfaceId: number
-	state: 0 | 1
+	state: number
+	linkInfo: LinkInfo
 }
 
 export interface InterfaceGeneral {
@@ -22,4 +23,16 @@ export interface InterfaceAuxiliaryInfoConnectorInfo {
 	interfaceType: number
 	type: number
 	workMode: number
+}
+
+export interface LinkInfo {
+	isLink: 0 | 1
+	shared?: number
+	sourceInfo?: SourceInfo
+}
+
+export interface SourceInfo {
+	identify: string
+	sourceId: number
+	sourceType: number
 }

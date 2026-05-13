@@ -1,4 +1,5 @@
 import { Layer } from './Layer.js'
+import { TestPatternPayload } from './TestPattern.js'
 
 export interface ScreenListDetailData {
 	totalCount: number
@@ -27,6 +28,7 @@ export interface Screen {
 	enable: 0 | 1
 	guid: string
 	ftb: ScreenFTB
+	testPattern?: TestPatternPayload
 }
 
 export interface ScreenGeneral {

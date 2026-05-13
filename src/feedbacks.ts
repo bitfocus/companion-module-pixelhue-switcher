@@ -3,7 +3,41 @@ import type { ModuleInstance } from './main.js'
 import { LoadIn } from './interfaces/Preset.js'
 import { DropdownChoice } from '@companion-module/base'
 import { SCREEN_TYPE } from './interfaces/Screen.js'
-import { buildInterfaceLookup } from './actionUtils.js'
+import { buildInterfaceLookup, getInputSourceChoices } from './actionUtils.js'
+
+const COLOR_ONLINE = combineRgb(23, 207, 42)
+const COLOR_ERROR = combineRgb(228, 50, 50)
+const COLOR_SPECIAL = combineRgb(21, 206, 246)
+const COLOR_DEFAULT = combineRgb(95, 95, 103)
+const COLOR_TEXT = combineRgb(255, 255, 255)
+
+export enum InputSourceState {
+	noSignal, // No signal
+	haveSignal, // Have signal
+	haveSignalCopy, // Have signal - Copy
+	noSignalCopy, // No signal - Copy
+	disabled, // Disabled
+	superLoad, // Super load
+	superLoadCopy, // Super bandwidth - Backup
+	haveSignalBackup, // Have signal - Backup
+	noSignalBackup, // No signal - Backup
+	astableSignal, // Unstable signal
+	astableSignalCopy, // Unstable signal - Copy
+	astableSignalBackup, // Unstable signal - Backup
+	superLoadBackup, // Turn red - Backup
+}
+
+function getStateColor(state: number): number {
+	if (state === Number(InputSourceState.haveSignal) || state === Number(InputSourceState.haveSignalCopy)) {
+		return COLOR_ONLINE
+	} else if (state === Number(InputSourceState.superLoad)) {
+		return COLOR_ERROR
+	} else if (state === Number(InputSourceState.astableSignal) || state === Number(InputSourceState.astableSignalCopy)) {
+		return COLOR_SPECIAL
+	} else {
+		return COLOR_DEFAULT
+	}
+}
 
 export function updateCompanionFeedbacks(self: ModuleInstance): void {
 	self.setFeedbackDefinitions({
@@ -184,6 +218,35 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 				return screen?.ftb.enable === 1
 			},
 		},
+		screenTestPatternState: {
+			name: 'Screen Test Pattern State',
+			type: 'boolean',
+			defaultStyle: {
+				bgcolor: combineRgb(255, 0, 0),
+				color: combineRgb(255, 255, 255),
+			},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Screen',
+					id: 'screenId',
+					default: 1,
+					choices: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]).map((screen): DropdownChoice => {
+						return {
+							id: screen.guid,
+							label: screen.general.name,
+						}
+					}),
+				},
+			],
+			callback: (feedback) => {
+				const screen = self.screens.find((screen) => {
+					return screen.guid === feedback.options.screenId!
+				})
+				if (!screen || !screen.testPattern) return false
+				return screen.testPattern.enable === 1
+			},
+		},
 		globalFtbState: {
 			name: 'Global FTB State',
 			type: 'boolean',
@@ -285,6 +348,77 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 					entry.usingSourceId === entry.backupSourceId && entry.usingSourceType === entry.backupSourceType
 
 				return usingBackup
+			},
+		},
+		sourceSignalState: {
+			name: 'Input Source Signal State',
+			type: 'advanced',
+			description: 'Change style based on input source signal state',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'inputId',
+					label: 'Input Source',
+					default: '',
+					choices: getInputSourceChoices(self, () => self.updateFeedbacks()),
+				},
+			],
+			callback: (feedback) => {
+				const inputId = String(feedback.options.inputId)
+				if (inputId.startsWith('interface_')) {
+					const interfaceId = Number(inputId.replace('interface_', ''))
+					const interfaceO = self.interfaces.find((int) => int.interfaceId === interfaceId)
+
+					if (!interfaceO) {
+						return {
+							bgcolor: COLOR_DEFAULT,
+							color: COLOR_TEXT,
+						}
+					}
+
+					// Debug: 检查状态值
+					self.log(
+						'info',
+						`interfaceO: ${interfaceO.state}, astableSignal: ${InputSourceState.astableSignal}, astableSignalCopy: ${InputSourceState.astableSignalCopy}`,
+					)
+					const bgcolor = getStateColor(interfaceO.state)
+
+					return {
+						bgcolor: bgcolor,
+						color: COLOR_TEXT,
+					}
+				} else if (inputId.startsWith('crop_')) {
+					const cropSourceId = Number(inputId.replace('crop_', ''))
+					const cropSource = self.cropSources.find((cs) => cs.cropId === cropSourceId)
+
+					if (!cropSource || !cropSource.cropIdObj || cropSource.cropIdObj.sourceId === undefined) {
+						return {
+							bgcolor: COLOR_DEFAULT,
+							color: COLOR_TEXT,
+						}
+					}
+
+					const mainSource = self.interfaces.find((int) => int.interfaceId === cropSource.cropIdObj.sourceId)
+
+					if (!mainSource) {
+						return {
+							bgcolor: COLOR_DEFAULT,
+							color: COLOR_TEXT,
+						}
+					}
+
+					const bgcolor = getStateColor(mainSource.state)
+
+					return {
+						bgcolor: bgcolor,
+						color: COLOR_TEXT,
+					}
+				}
+
+				return {
+					bgcolor: COLOR_DEFAULT,
+					color: COLOR_TEXT,
+				}
 			},
 		},
 	})

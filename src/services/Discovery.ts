@@ -5,18 +5,19 @@ export interface DiscoveredDevice {
 	modelId: number
 	deviceName: string
 	ip: string
+	mac?: string
 	protocols: Array<{ linkType: string; port: number }>
 }
 
-export async function discoverDevices(host: string): Promise<DiscoveredDevice[]> {
+export async function discoverDevices(host: string, includeClientType: boolean = false): Promise<DiscoveredDevice[]> {
 	try {
+		const url = includeClientType
+			? `https://${host}:19998/unico/v1/ucenter/device-list?clientType=8`
+			: `https://${host}:19998/unico/v1/ucenter/device-list`
 		const resp = await got
-			.get(`https://${host}:19998/unico/v1/ucenter/device-list`, {
+			.get(url, {
 				https: {
 					rejectUnauthorized: false, // allow self-signed cert
-				},
-				timeout: {
-					request: 5000,
 				},
 			})
 			.json<any>()

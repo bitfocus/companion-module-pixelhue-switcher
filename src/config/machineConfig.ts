@@ -24,6 +24,7 @@ export interface MachineConfig {
 			freeze: string
 			select: string
 			listDetail: string
+			testPattern: string
 		}
 		preset: {
 			list: string
@@ -38,6 +39,7 @@ export interface MachineConfig {
 			layerPresetListDetail: string
 			layerPresetApply: string
 			interfaces: string
+			cropSource: string
 		}
 		crtl: {
 			sourceBackup: string

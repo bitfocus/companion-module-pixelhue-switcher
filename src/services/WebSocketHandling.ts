@@ -3,12 +3,22 @@ import { Layer, LayerSelection } from '../interfaces/Layer.js'
 import { Screen, ScreenSelectionData, UpdateLayoutData } from '../interfaces/Screen.js'
 import { Preset, PresetListDetailData } from '../interfaces/Preset.js'
 import { WebsocketCallbackData } from '../interfaces/WebsocketCallbackData.js'
+import { filterValidScreens, isValidPreset, isValidScreen } from '../utils/listFilters.js'
 import { realMerge } from '../utils/utils.js'
 import { SourceBackup } from '../interfaces/SourceBackup.js'
 
+/** 用 screenIdObj.id + type 标识屏幕，与预设里 screens 项及 self.screens 对齐 */
+function screenIdentityKey(screenIdObj: Screen['screenIdObj'] | undefined | null): string | null {
+	if (screenIdObj == null) return null
+	const id = Number(screenIdObj.id)
+	const type = Number(screenIdObj.type)
+	if (!Number.isFinite(id) || !Number.isFinite(type)) return null
+	return `${id}:${type}`
+}
+
 export const MessageTypes = {
 	layersSelected: 0x81105,
-	screensUpdated: 0x61100,
+	interfaceUpdated: 0x61100,
 	screenNamesChanged: 0x71102,
 	screensSelected: 0x71111,
 	presetNamesChanged: 0xa2105,
@@ -26,6 +36,12 @@ export const MessageTypes = {
 	presetApplied: 0xa2100,
 	sourceBackupUpdated: 0x4050d,
 	presetDeleted: 0xa2106,
+	screenDeleted: 0x71104,
+	renameInputSource: 0x61102,
+	subcardStatusUpdated: 0x5010a,
+	subcardModeUpdated: 0x50404,
+	layerCreate: 0x81102,
+	layerDeleted: 0x81103,
 }
 
 export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message: WebsocketCallbackData) => void } = {
@@ -46,6 +62,35 @@ export const webSocketHandlers: { [key: number]: (self: ModuleInstance, message:
 	[MessageTypes.presetApplied]: presetApplied,
 	[MessageTypes.sourceBackupUpdated]: sourceBackupUpdated,
 	[MessageTypes.presetDeleted]: presetDeleted,
+	[MessageTypes.createScreen]: createScreen,
+	[MessageTypes.screenDeleted]: screenDeleted,
+	[MessageTypes.interfaceUpdated]: interfaceUpdated,
+	[MessageTypes.renameInputSource]: renameInputSource,
+	[MessageTypes.subcardStatusUpdated]: subcardStatusUpdated,
+	[MessageTypes.subcardModeUpdated]: subcardModeUpdated,
+	[MessageTypes.layerCreate]: layerCreated,
+	[MessageTypes.layerDeleted]: layerDeleted,
+}
+
+export function refreshLayers(self: ModuleInstance, source: string): void {
+	if (!self.apiClient) {
+		return
+	}
+
+	void self.apiClient
+		.getLayers()
+		.then((response) => {
+			self.layers = response.data.list
+			self.updateVariableDefinitions()
+			self.updateVariableValues()
+			self.updateActions()
+			self.updateFeedbacks()
+			self.checkFeedbacks('selectedLayerState')
+			self.updatePresets()
+		})
+		.catch((err) => {
+			self.log('warn', `${source}: refresh layers failed: ${err instanceof Error ? err.message : String(err)}`)
+		})
 }
 
 export function layersSelected(self: ModuleInstance, message: WebsocketCallbackData): void {
@@ -65,7 +110,7 @@ export function layersSelected(self: ModuleInstance, message: WebsocketCallbackD
 }
 
 export function screenPropertiesChanged(self: ModuleInstance, message: WebsocketCallbackData): void {
-	const screens: Screen[] = message.data
+	const screens: Screen[] = filterValidScreens(Array.isArray(message.data) ? message.data : [])
 	updateScreens(self, screens)
 	self.updateVariableValues()
 }
@@ -86,9 +131,15 @@ export function screensSelected(self: ModuleInstance, message: WebsocketCallback
 	screenSelectionData.forEach((screenSelection) => {
 		const screen = self.screens.find((oldScreen) => {
 			return oldScreen.screenId === screenSelection.screenId
-		})!
+		})
+
+		if (!screen) return
 		screen.select = screenSelection.select
 	})
+
+	self.updateActions()
+	self.updateFeedbacks()
+	self.updateVariableValues()
 	self.checkFeedbacks('screenState')
 }
 
@@ -120,8 +171,16 @@ export function updatePresets(self: ModuleInstance, presets: Preset[]): void {
 
 export function presetCreated(self: ModuleInstance, message: WebsocketCallbackData): void {
 	const newPreset: Preset = message.data
-	self.presets = self.presets.filter((preset) => preset.serial !== newPreset.serial)
-	self.presets.push(newPreset)
+	if (!isValidPreset(newPreset)) {
+		self.log('warn', 'presetCreated: ignored preset with empty guid or name')
+		return
+	}
+	const sanitized: Preset = {
+		...newPreset,
+		screens: filterValidScreens(newPreset.screens ?? []),
+	}
+	self.presets = self.presets.filter((preset) => preset.serial !== sanitized.serial)
+	self.presets.push(sanitized)
 	self.updateVariableDefinitions()
 	self.updateVariableValues()
 	self.updateActions()
@@ -130,10 +189,24 @@ export function presetCreated(self: ModuleInstance, message: WebsocketCallbackDa
 }
 
 export function presetDeleted(self: ModuleInstance, message: WebsocketCallbackData): void {
-	const index = self.presets.findIndex((preset) => preset.guid === String(message.data))
+	const raw = message.data
+	const items = Array.isArray(raw) ? raw : [raw]
+	const deletedGuids = new Set<string>()
 
-	if (index !== -1) {
-		self.presets.splice(index, 1)
+	items.forEach((item) => {
+		if (typeof item === 'string' || typeof item === 'number') {
+			const g = String(item).trim()
+			if (g) deletedGuids.add(g)
+			return
+		}
+		if (item && typeof item === 'object' && 'guid' in item && (item as { guid: unknown }).guid != null) {
+			const g = String((item as { guid: unknown }).guid).trim()
+			if (g) deletedGuids.add(g)
+		}
+	})
+
+	if (deletedGuids.size > 0) {
+		self.presets = self.presets.filter((preset) => !deletedGuids.has(preset.guid))
 	}
 
 	self.updateVariableDefinitions()
@@ -220,16 +293,20 @@ export function layerGeneralUpdated(self: ModuleInstance, message: WebsocketCall
 
 export function presetApplied(self: ModuleInstance, message: WebsocketCallbackData): void {
 	const data: PresetListDetailData = message.data
+	const didTake = data?.list?.filter((item) => item.currentRegion === 2 && item.sourceRegion === 4).length > 0
 
-	const didTake = data.list.filter((item) => item.currentRegion === 2 && item.sourceRegion === 4).length > 0
-
-	data.list.forEach((preset) => {
+	data?.list?.forEach((preset) => {
 		if (preset.currentRegion > 2 && !didTake) {
-			const selectedScreensGuid = preset.screens.map((screen) => screen.guid)
+			const selectedScreenKeys = new Set<string>()
+			for (const ps of preset.screens ?? []) {
+				const key = screenIdentityKey(ps?.screenIdObj)
+				if (key) selectedScreenKeys.add(key)
+			}
 			self.screens = self.screens.map((screen): Screen => {
+				const key = screenIdentityKey(screen.screenIdObj)
 				return {
 					...screen,
-					select: selectedScreensGuid.includes(screen.guid) ? 1 : 0,
+					select: key !== null && selectedScreenKeys.has(key) ? 1 : 0,
 				}
 			})
 		}
@@ -262,5 +339,104 @@ export function sourceBackupUpdated(self: ModuleInstance, message: WebsocketCall
 	const sourceBackup: SourceBackup = message.data
 	realMerge(self.sourceBackups, sourceBackup)
 	self.updateActions()
+	self.updatePresets()
+	self.updateFeedbacks()
+	self.updateVariableDefinitions()
+	self.updateVariableValues()
 	self.checkFeedbacks('sourceBackupState')
+}
+
+export function createScreen(self: ModuleInstance, message: WebsocketCallbackData): void {
+	const screen = message.data as Screen
+	if (!isValidScreen(screen)) {
+		self.log('warn', 'createScreen: ignored screen with empty guid or name')
+		return
+	}
+	self.screens.push(screen)
+	self.updateVariableDefinitions()
+	self.updateVariableValues()
+	self.updateActions()
+	self.updateFeedbacks()
+	self.updateVariableValues()
+	self.checkFeedbacks('screenState')
+	self.updatePresets()
+}
+
+export function screenDeleted(self: ModuleInstance, message: WebsocketCallbackData): void {
+	const deletedItems = Array.isArray(message.data) ? message.data : [message.data]
+	const deletedGuids = new Set<string>()
+	const deletedScreenIds = new Set<number>()
+
+	deletedItems.forEach((item) => {
+		if (item?.guid) deletedGuids.add(item.guid)
+		if (item?.screenId !== undefined) deletedScreenIds.add(item.screenId)
+	})
+
+	self.screens = self.screens.filter((screen) => {
+		return !deletedGuids.has(screen.guid) && !deletedScreenIds.has(screen.screenId)
+	})
+
+	self.updateVariableDefinitions()
+	self.updateVariableValues()
+	self.updateActions()
+	self.updateFeedbacks()
+	self.updateVariableValues()
+	self.checkFeedbacks('screenState')
+	self.updatePresets()
+}
+
+export function renameInputSource(self: ModuleInstance, message: WebsocketCallbackData): void {
+	const renameItems = Array.isArray(message.data) ? message.data : [message.data]
+
+	renameItems.forEach((renameItem) => {
+		if (!renameItem?.interfaceId) return
+
+		const targetInterface = self.interfaces.find((interfaceO) => {
+			return interfaceO.interfaceId === renameItem.interfaceId
+		})
+
+		if (!targetInterface || !renameItem.general?.name) return
+		targetInterface.general.name = renameItem.general.name
+	})
+
+	self.updateActions()
+	self.updateFeedbacks()
+	self.updateVariableValues()
+}
+
+export function interfaceUpdated(self: ModuleInstance, _message: WebsocketCallbackData): void {
+	if (!self.apiClient) {
+		return
+	}
+
+	void Promise.all([self.apiClient.getInterfaces(), self.apiClient.getCropSources()])
+		.then(([interfacesResponse, cropSourcesResponse]) => {
+			self.interfaces = interfacesResponse.data.list
+			self.cropSources = cropSourcesResponse.data.list
+			self.updateActions()
+			self.updateFeedbacks()
+			self.updateVariableValues()
+		})
+		.catch((err) => {
+			self.log(
+				'warn',
+				`interfaceUpdated: refresh interfaces/cropSources failed: ${err instanceof Error ? err.message : String(err)}`,
+			)
+		})
+}
+
+export function subcardStatusUpdated(self: ModuleInstance, message: WebsocketCallbackData): void {
+	interfaceUpdated(self, message)
+}
+
+export function subcardModeUpdated(self: ModuleInstance, message: WebsocketCallbackData): void {
+	interfaceUpdated(self, message)
+}
+
+export function layerCreated(self: ModuleInstance, _message: WebsocketCallbackData): void {
+	refreshLayers(self, 'layerCreated')
+}
+
+export function layerDeleted(self: ModuleInstance, _message: WebsocketCallbackData): void {
+	refreshLayers(self, 'layerDeleted')
 }

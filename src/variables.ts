@@ -3,6 +3,7 @@ import { CompanionVariableDefinition, CompanionVariableValues } from '@companion
 import { LoadIn } from './interfaces/Preset.js'
 import { SCREEN_TYPE } from './interfaces/Screen.js'
 import { Layer } from './interfaces/Layer.js'
+import { getBackupActiveSourceShortDisplay } from './utils/backupDisplay.js'
 
 export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 	const presetVariableDefinitions: CompanionVariableDefinition[] = self.presets.map((preset) => {
@@ -61,6 +62,15 @@ export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 		]
 	})
 
+	const backupVariableDefinitions: CompanionVariableDefinition[] = (self.sourceBackups.sourceBackup.backup ?? []).map(
+		(backup) => {
+			return {
+				variableId: `backup_${backup.id}_active_short`,
+				name: `Input Backup ${backup.id}: Active source (short)`,
+			}
+		},
+	)
+
 	self.setVariableDefinitions([
 		{ variableId: 'global_load_in', name: 'Global Preset Load In' },
 		{ variableId: 'global_load_in_short', name: 'Global Preset Load In (Short Name)' },
@@ -78,6 +88,7 @@ export function updateCompanionVariableDefinitions(self: ModuleInstance): void {
 		...screensFreezeVariableDefinitions,
 		...screensFtbVariableDefinitions,
 		...layersVariableDefinitions,
+		...backupVariableDefinitions,
 	])
 }
 
@@ -105,6 +116,11 @@ export function updateVariableValues(self: ModuleInstance): void {
 		layerVariables[`${baseVariableId}_source`] = layer.source.general.sourceName
 	})
 
+	const backupVariables: CompanionVariableValues = {}
+	;(self.sourceBackups.sourceBackup.backup ?? []).forEach((backup) => {
+		backupVariables[`backup_${backup.id}_active_short`] = getBackupActiveSourceShortDisplay(self, backup)
+	})
+
 	const selectedLayer = self.layers.find((layer) => {
 		return (
 			layer.selected === 1 &&
@@ -127,6 +143,7 @@ export function updateVariableValues(self: ModuleInstance): void {
 		...presetVariables,
 		...screenVariables,
 		...layerVariables,
+		...backupVariables,
 	})
 }
 
