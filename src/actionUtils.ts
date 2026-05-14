@@ -8,6 +8,9 @@ import {
 import { LoadIn } from './interfaces/Preset.js'
 import { Layer } from './interfaces/Layer.js'
 import { Screen, SCREEN_TYPE } from './interfaces/Screen.js'
+import { discoverDevices } from './services/Discovery.js'
+import { ApiClient } from './services/ApiClient.js'
+import { Interface } from './interfaces/Interface.js'
 
 export function getLayerSelectionOptions(
 	self: ModuleInstance,
@@ -146,4 +149,109 @@ export function buildInterfaceLookup(
 	interfaces: { interfaceId: number; general: { name: string } }[],
 ): Record<number, string> {
 	return Object.fromEntries(interfaces.map((int) => [int.interfaceId, int.general.name]))
+}
+
+export function getInputSourceChoices(self: ModuleInstance, onUpdate: () => void): DropdownChoice[] {
+	const interfaceChoices = self.interfaces
+		.filter((interfaceO) => {
+			const interfaceType = interfaceO.auxiliaryInfo.connectorInfo.interfaceType
+			const workMode = interfaceO.auxiliaryInfo.connectorInfo.workMode
+			return interfaceType === 2 && workMode === 0
+		})
+		.map((interfaceO): DropdownChoice => {
+			const typeLabel = interfaceO.linkInfo?.isLink === 1 ? 'Link' : 'Input'
+			let displayName = interfaceO.general.name
+
+			if (interfaceO.linkInfo?.isLink === 1 && interfaceO.linkInfo.sourceInfo) {
+				const identify = interfaceO.linkInfo.sourceInfo.identify
+				const sourceId = interfaceO.linkInfo.sourceInfo.sourceId
+
+				const cacheKey = `${identify}:${sourceId}`
+				const cachedName = self.linkedSourceNameCache?.get(cacheKey)
+
+				if (cachedName) {
+					displayName = cachedName
+				} else {
+					void getLinkedSourceName(self, identify, sourceId).then((name) => {
+						if (name) {
+							if (!self.linkedSourceNameCache) {
+								self.linkedSourceNameCache = new Map()
+							}
+							self.linkedSourceNameCache.set(cacheKey, name)
+							onUpdate()
+						}
+					})
+				}
+			}
+
+			return {
+				id: `interface_${interfaceO.interfaceId}`,
+				label: `${displayName} (${typeLabel})`,
+			}
+		})
+
+	const cropChoices = self.cropSources.map(
+		(cropSource): DropdownChoice => ({
+			id: `crop_${cropSource.cropId}`,
+			label: `${cropSource.name} (Crop)`,
+		}),
+	)
+
+	return [...interfaceChoices, ...cropChoices]
+}
+
+export async function getLinkedSourceName(
+	self: ModuleInstance,
+	identify: string,
+	sourceId: number,
+): Promise<string | null> {
+	try {
+		const devices = await discoverDevices(self.config.host, true)
+
+		const normalizedIdentify = identify.toLowerCase()
+		const identifyParts = normalizedIdentify.split(':')
+
+		const targetDevice = devices.find((d) => {
+			if (!d.mac) return false
+			const mac = d.mac.toLowerCase()
+			const macParts = mac.split(':')
+			if (macParts.length >= 3 && identifyParts.length === 3) {
+				const macLast3 = macParts.slice(-3).join(':')
+				return macLast3 === normalizedIdentify
+			}
+			return mac.includes(normalizedIdentify) || normalizedIdentify.includes(mac)
+		})
+
+		if (!targetDevice) {
+			self.log(
+				'warn',
+				`Linked device not found for identify: ${identify}. Available devices: ${devices
+					.map((d) => `${d.deviceName} (${d.SN}, MAC: ${d.mac || 'N/A'})`)
+					.join(', ')}`,
+			)
+			return null
+		}
+
+		const remoteApiClient = await ApiClient.create(self, targetDevice.ip, {
+			targetSn: targetDevice.SN,
+		})
+
+		const interfacesResponse = await remoteApiClient.getInterfaces()
+		const remoteInterfaces = interfacesResponse.data.list
+
+		const linkedSource = remoteInterfaces.find((int: Interface) => int.interfaceId === sourceId)
+
+		if (!linkedSource) {
+			self.log(
+				'warn',
+				`Linked source not found for sourceId: ${sourceId} on device: ${identify} (IP: ${targetDevice.ip}, SN: ${targetDevice.SN})`,
+			)
+			return null
+		}
+
+		return linkedSource.general.name
+	} catch (error: any) {
+		self.log('error', `Failed to get linked source name: ${error.message}`)
+		return null
+	}
 }

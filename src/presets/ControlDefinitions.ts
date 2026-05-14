@@ -4,6 +4,8 @@ import { PRESET_CATEGORY } from '../utils/constants.js'
 import { LoadIn } from '../interfaces/Preset.js'
 
 export function getControlPresetDefinitions(self: ModuleInstance): CompanionPresetDefinitions {
+	const firstBackup = self.sourceBackups?.sourceBackup?.backup?.[0]
+
 	return {
 		globalControLabel: {
 			type: 'text',
@@ -26,7 +28,10 @@ export function getControlPresetDefinitions(self: ModuleInstance): CompanionPres
 					down: [
 						{
 							actionId: 'take',
-							options: {},
+							options: {
+								customTimeEnabled: false,
+								time: '500',
+							},
 						},
 					],
 					up: [],
@@ -171,28 +176,45 @@ export function getControlPresetDefinitions(self: ModuleInstance): CompanionPres
 				},
 			],
 		},
-		switchBackupSource: {
-			type: 'button',
-			name: 'Switch Backup Source',
-			category: PRESET_CATEGORY.CONTROL,
-			style: {
-				text: 'Switch Backup\nSource',
-				size: 16,
-				color: combineRgb(255, 255, 255),
-				bgcolor: combineRgb(0, 0, 0),
-			},
-			steps: [
-				{
-					down: [
-						{
-							actionId: 'switchBackupSource',
-							options: {},
+		...(firstBackup !== undefined
+			? {
+					switchBackupSource: {
+						type: 'button',
+						name: 'Switch Backup Source',
+						category: PRESET_CATEGORY.CONTROL,
+						style: {
+							text: 'Switch Backup\nSource',
+							size: 16,
+							color: combineRgb(255, 255, 255),
+							bgcolor: combineRgb(0, 0, 0),
 						},
-					],
-					up: [],
-				},
-			],
-			feedbacks: [],
-		},
+						steps: [
+							{
+								down: [
+									{
+										actionId: 'switchSourceBackup',
+										options: {
+											backupSourceId: firstBackup.id,
+										},
+									},
+								],
+								up: [],
+							},
+						],
+						feedbacks: [
+							{
+								feedbackId: 'sourceBackupState',
+								style: {
+									bgcolor: combineRgb(0, 204, 0),
+									color: combineRgb(255, 255, 255),
+								},
+								options: {
+									backupSourceId: firstBackup.id,
+								},
+							},
+						],
+					},
+				}
+			: {}),
 	}
 }

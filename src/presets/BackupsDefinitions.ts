@@ -17,7 +17,7 @@ export function getBackupDefinitions(self: ModuleInstance): CompanionPresetDefin
 			name: `Toggle Backup ${backup.id} Input`,
 			category: PRESET_CATEGORY.BACKUP,
 			style: {
-				text: `Backup ${backup.id}`,
+				text: `Backup ${backup.id}\n$(${self.id}:backup_${backup.id}_active_short)`,
 				size: 16,
 				color: combineRgb(255, 255, 255),
 				bgcolor: combineRgb(0, 0, 0),

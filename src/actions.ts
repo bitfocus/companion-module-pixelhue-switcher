@@ -3,6 +3,7 @@ import { DropdownChoice } from '@companion-module/base'
 import { LoadIn } from './interfaces/Preset.js'
 import {
 	buildInterfaceLookup,
+	getInputSourceChoices,
 	getLayerBySelection,
 	getLayerSelectionOptions,
 	getScreensBySelection,
@@ -12,6 +13,14 @@ import { LayerBounds, LayerUMD } from './interfaces/Layer.js'
 import { HTTPError } from 'got'
 import { SCREEN_TYPE } from './interfaces/Screen.js'
 import { SourceBackup } from './interfaces/SourceBackup.js'
+import {
+	TEST_PATTERN_TYPE_CHOICES,
+	SCREEN_TEST_PATTERN_TYPE_CHOICES,
+	SPEED_LEVEL_CHOICES,
+	TestPatternValue,
+	TestPatternPayload,
+	TestPatternGridType,
+} from './interfaces/TestPattern.js'
 
 export function updateCompanionActions(self: ModuleInstance): void {
 	self.setActionDefinitions({
@@ -30,14 +39,14 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					label: 'Time',
 					id: 'time',
 					isVisibleExpression: '$(options:customTimeEnabled)',
-					required: true,
+					required: false,
 					default: '500',
 					useVariables: true,
 				},
 			],
 			callback: async (event, context) => {
 				try {
-					const parsedTime = await context.parseVariablesInString(<string>event.options.time)
+					const parsedTime = await context.parseVariablesInString(String(event.options.time ?? '500'))
 					const screensToTake = self.screens.filter((screen) => screen.select === 1)
 					await self.apiClient?.take(
 						screensToTake,
@@ -65,7 +74,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					label: 'Time',
 					id: 'time',
 					isVisibleExpression: '$(options:customTimeEnabled)',
-					required: true,
+					required: false,
 					default: '500',
 					useVariables: true,
 				},
@@ -84,7 +93,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			],
 			callback: async (event, context) => {
 				try {
-					const parsedTime = await context.parseVariablesInString(<string>event.options.time)
+					const parsedTime = await context.parseVariablesInString(String(event.options.time ?? '500'))
 					const screensToTake = self.screens.filter((screen) => event.options.screenId === screen.screenId)
 					await self.apiClient?.take(
 						screensToTake,
@@ -112,7 +121,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					label: 'Time',
 					id: 'time',
 					isVisibleExpression: '$(options:customTimeEnabled)',
-					required: true,
+					required: false,
 					default: '500',
 					useVariables: true,
 				},
@@ -131,7 +140,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			],
 			callback: async (event, context) => {
 				try {
-					const parsedTime = await context.parseVariablesInString(<string>event.options.time)
+					const parsedTime = await context.parseVariablesInString(String(event.options.time ?? '500'))
 
 					const selectedScreenIds = (event.options.screenId ?? []) as number[]
 
@@ -193,11 +202,11 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						},
 						{
 							id: 0,
-							label: 'Disable',
+							label: 'Enable',
 						},
 						{
 							id: 1,
-							label: 'Enable',
+							label: 'Disable',
 						},
 					],
 				},
@@ -410,11 +419,22 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			callback: async (event) => {
 				const action: number = <number>event.options.action
 				const screenIndex = self.screens.findIndex((screen) => screen.screenId === event.options.screenId)
+				if (screenIndex < 0) {
+					self.log('warn', `selectScreen called with unknown screenId: ${String(event.options.screenId)}`)
+					return
+				}
 				if (action >= 0) {
 					self.screens[screenIndex].select = event.options.action === 1 ? 1 : 0
 				} else {
 					self.screens[screenIndex].select = self.screens[screenIndex].select !== 1 ? 1 : 0
 				}
+
+				try {
+					await self.apiClient?.selectScreens(self.screens)
+				} catch (error: any) {
+					self.log('error', (error as HTTPError).message)
+				}
+
 				self.checkFeedbacks('screenState')
 			},
 		},
@@ -622,33 +642,53 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					id: 'inputId',
 					label: 'Input',
 					default: '',
-					choices: self.getInterfaces(2, 0).map((interfaceO) => {
-						return {
-							id: interfaceO.interfaceId,
-							label: interfaceO.general.name,
-						}
-					}),
+					choices: getInputSourceChoices(self, () => self.updateActions()),
 				},
 				...getLayerSelectionOptions(self, true, [SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]),
 			],
 			callback: async (event, context) => {
 				const layer = await getLayerBySelection(self, event, context)
-				const input = self.interfaces.find((interfaceO) => {
-					return interfaceO.interfaceId === event.options.inputId
-				})
-				if (layer === undefined || input === undefined) return
+				if (layer === undefined) return
 
-				try {
+				const inputId = String(event.options.inputId)
+				if (inputId.startsWith('interface_')) {
+					const interfaceId = Number(inputId.replace('interface_', ''))
+					const input = self.interfaces.find((interfaceO) => {
+						return interfaceO.interfaceId === interfaceId
+					})
+					if (input === undefined) return
+
 					await self.apiClient?.setInputOnLayer(layer, input)
-				} catch (error: any) {
-					self.log('error', 'inputOnLayer send error')
-					self.log('error', error)
+				} else if (inputId.startsWith('crop_')) {
+					const cropSourceId = Number(inputId.replace('crop_', ''))
+					const cropSource = self.cropSources.find((cs) => {
+						return cs.cropId === cropSourceId
+					})
+
+					if (cropSource === undefined) return
+
+					if (!cropSource.cropIdObj || cropSource.cropIdObj.sourceId === undefined) {
+						return
+					}
+
+					const mainSource = self.interfaces.find((int) => int.interfaceId === cropSource.cropIdObj.sourceId)
+
+					if (mainSource === undefined) {
+						self.log(
+							'error',
+							`mainSource not found for cropSource.cropIdObj.sourceId: ${cropSource.cropIdObj.sourceId}`,
+						)
+						return
+					}
+
+					await self.apiClient?.setCropSourceOnLayer(layer, cropSource, mainSource)
 				}
 			},
 		},
 		switchSourceBackup: {
 			name: 'Switch Input Backup',
-			description: 'Switches the selected Input Backup to use the backup source',
+			description:
+				'Manual switch of input backup (only when switchMode=1). When switchMode=0 (auto), no command is sent to the device.',
 			options: [
 				{
 					type: 'dropdown',
@@ -674,6 +714,17 @@ export function updateCompanionActions(self: ModuleInstance): void {
 				const currentSourceBackup = self.sourceBackups.sourceBackup
 				if (!currentSourceBackup || !currentSourceBackup.backup) return
 
+				const entry = currentSourceBackup.backup.find((b) => b.id === selectedId)
+				if (!entry) return
+
+				if (entry.switchMode === 0) {
+					self.log(
+						'info',
+						`switchSourceBackup: backup id ${selectedId} uses auto switch (switchMode=0); skipping device PUT`,
+					)
+					return
+				}
+
 				try {
 					const newBackupSource: SourceBackup = {
 						sourceBackup: {
@@ -698,9 +749,287 @@ export function updateCompanionActions(self: ModuleInstance): void {
 
 					self.log('debug', `Setting new backup source: ${JSON.stringify(newBackupSource)}`)
 					await self.apiClient?.setBackupSource(newBackupSource)
+					self.sourceBackups = newBackupSource
+					self.updateVariableValues()
 				} catch (error: any) {
 					self.log('error', 'switchSourceBackup send error')
 					self.log('error', error)
+				}
+			},
+		},
+		setTestPattern: {
+			name: 'Set Test Pattern on Screen',
+			description: 'Set a test pattern on the selected screen',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'screenId',
+					label: 'Screen',
+					default: self.screens.filter((screen) => {
+						return [SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX].includes(screen.screenIdObj.type)
+					})[0]?.screenId,
+					choices: self.screens
+						.filter((screen) => {
+							return [SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX].includes(screen.screenIdObj.type)
+						})
+						.map(
+							(screen): DropdownChoice => ({
+								id: screen.screenId,
+								label: screen.general.name,
+							}),
+						),
+				},
+				{
+					type: 'dropdown',
+					id: 'enable',
+					label: 'Enable',
+					default: 1,
+					choices: [
+						{ id: 1, label: 'Enable' },
+						{ id: 0, label: 'Disable' },
+					],
+				},
+				{
+					type: 'dropdown',
+					id: 'testType',
+					label: 'Test Type',
+					default: 'interface',
+					choices: [
+						{ id: 'interface', label: 'Connector Test' },
+						{ id: 'screen', label: 'Screen Test' },
+					],
+					isVisibleExpression: '$(options:enable) == 1',
+				},
+				{
+					type: 'dropdown',
+					id: 'patternType',
+					label: 'Test Pattern',
+					default: TEST_PATTERN_TYPE_CHOICES[0].value,
+					choices: TEST_PATTERN_TYPE_CHOICES.map((choice) => ({
+						id: choice.value,
+						label: choice.label,
+					})),
+					isVisibleExpression: "$(options:enable) == 1 && $(options:testType) == 'interface'",
+				},
+				{
+					type: 'dropdown',
+					id: 'screenPatternType',
+					label: 'Test Pattern',
+					default: SCREEN_TEST_PATTERN_TYPE_CHOICES[0].value,
+					choices: SCREEN_TEST_PATTERN_TYPE_CHOICES.map((choice) => ({
+						id: choice.value,
+						label: choice.label,
+					})),
+					isVisibleExpression: "$(options:enable) == 1 && $(options:testType) == 'screen'",
+				},
+				{
+					type: 'dropdown',
+					id: 'bright',
+					label: 'Grayscale',
+					default: 3,
+					choices: [
+						{ id: 1, label: '25' },
+						{ id: 2, label: '50' },
+						{ id: 3, label: '75' },
+						{ id: 4, label: '100' },
+					],
+					isVisibleExpression: '$(options:enable) == 1',
+				},
+				{
+					type: 'dropdown',
+					id: 'spacingLevel',
+					label: 'Spacing Level',
+					default: 5,
+					choices: [
+						{ id: 1, label: '1' },
+						{ id: 2, label: '2' },
+						{ id: 3, label: '3' },
+						{ id: 4, label: '4' },
+						{ id: 5, label: '5' },
+						{ id: 6, label: '6' },
+						{ id: 7, label: '7' },
+						{ id: 8, label: '8' },
+					],
+					isVisibleExpression:
+						'$(options:enable) == 1 && $(options:testType) == "interface" && ($(options:patternType) == 5 || $(options:patternType) == 6 ||$(options:patternType) == 7 || $(options:patternType) == 9 || $(options:patternType) == 256 || $(options:patternType) == 257 || $(options:patternType) == 258 || $(options:patternType) == 259 || $(options:patternType) == 260 || $(options:patternType) == 261 || $(options:patternType) == 262 || $(options:patternType) == 263)',
+				},
+				{
+					type: 'number',
+					id: 'gridLineWidth',
+					label: 'Grid Width',
+					default: 1,
+					min: 1,
+					max: 64,
+					required: false,
+					isVisibleExpression:
+						'$(options:enable) == 1 && $(options:testType) == "interface" && ($(options:patternType) == 512 || $(options:patternType) == 513 || $(options:patternType) == 514 || $(options:patternType) == 515 || $(options:patternType) == 516 || $(options:patternType) == 517 || $(options:patternType) == 518 || $(options:patternType) == 519 || $(options:patternType) == 521)',
+				},
+				{
+					type: 'dropdown',
+					id: 'speed',
+					label: 'Speed',
+					// Default value: 4 (Extremely Fast)
+					default: SPEED_LEVEL_CHOICES[4].value,
+					choices: SPEED_LEVEL_CHOICES.map((choice) => ({
+						id: choice.value,
+						label: choice.label, // Display numeric value (0-4)
+					})),
+					isVisibleExpression:
+						'$(options:enable) == 1 && $(options:testType) == "interface" && ($(options:patternType) == 512 || $(options:patternType) == 513 || $(options:patternType) == 514 || $(options:patternType) == 515 || $(options:patternType) == 516 || $(options:patternType) == 517 || $(options:patternType) == 518)',
+				},
+				{
+					type: 'number',
+					id: 'verticalSpace',
+					label: 'Vertical Space',
+					default: 32,
+					min: 1,
+					max: 32767,
+					step: 1,
+					required: false,
+					isVisibleExpression:
+						'$(options:enable) == 1 && $(options:testType) == "interface" && ($(options:patternType) == 512 || $(options:patternType) == 516 || $(options:patternType) == 518 || $(options:patternType) == 519 || $(options:patternType) == 521)',
+				},
+				{
+					type: 'number',
+					id: 'horizontalSpace',
+					label: 'Horizontal Space',
+					default: 32,
+					min: 1,
+					max: 32767,
+					step: 1,
+					required: false,
+					isVisibleExpression:
+						'$(options:enable) == 1 && $(options:testType) == "interface" && ($(options:patternType) == 513 || $(options:patternType) == 514 || $(options:patternType) == 515 || $(options:patternType) == 516 || $(options:patternType) == 517 || $(options:patternType) == 518 || $(options:patternType) == 519 || $(options:patternType) == 521)',
+				},
+				// {
+				// 	type: 'checkbox',
+				// 	id: 'screenBorder',
+				// 	label: 'Screen Border',
+				// 	default: false,
+				// 	isVisibleExpression: '$(options:enable) == 1',
+				// },
+				// {
+				// 	type: 'checkbox',
+				// 	id: 'interfaceBorder',
+				// 	label: 'Interface Border',
+				// 	default: false,
+				// 	isVisibleExpression: '$(options:enable) == 1',
+				// },
+				{
+					type: 'dropdown',
+					id: 'position',
+					label: 'Position',
+					default: 3,
+					choices: [
+						{ id: 1, label: 'Top Left' },
+						{ id: 2, label: 'Top Right' },
+						{ id: 3, label: 'Center' },
+						{ id: 4, label: 'Bottom Left' },
+						{ id: 5, label: 'Bottom Right' },
+					],
+					isVisibleExpression:
+						'$(options:enable) == 1 && $(options:testType) == "screen" && ($(options:screenPatternType) == 519 || $(options:screenPatternType) == 521)',
+				},
+			],
+			callback: async (event, context) => {
+				try {
+					const screen = self.screens.find((s) => s.screenId === event.options.screenId)
+					if (!screen) return
+
+					const enable = Number(event.options.enable) as 0 | 1
+					const testType = event.options.testType as 'interface' | 'screen'
+					const patternType = Number(
+						testType === 'screen' ? event.options.screenPatternType : event.options.patternType,
+					) as TestPatternValue
+
+					const bright = parseInt(await context.parseVariablesInString(String(event.options.bright ?? '100')))
+
+					const isSpacingLevelVisible =
+						enable === 1 &&
+						testType === 'interface' &&
+						[5, 6, 7, 9, 256, 257, 258, 259, 260, 261, 262, 263].includes(patternType)
+					const gridType: TestPatternGridType = isSpacingLevelVisible
+						? TestPatternGridType.Density
+						: TestPatternGridType.Spacing
+					const gridLineWidth = Number(event.options.gridLineWidth ?? 1)
+					// Parse speed level (0-4: Still/Slow/Medium/Fast/Extremely Fast)
+					const speed = parseInt(
+						await context.parseVariablesInString(String(event.options.speed) || String(SPEED_LEVEL_CHOICES[0].value)),
+					)
+					const verticalSpaceRaw = event.options.verticalSpace
+					const verticalSpaceNum =
+						verticalSpaceRaw !== undefined && verticalSpaceRaw !== null ? Number(verticalSpaceRaw) : Number.NaN
+					const verticalSpace = !Number.isNaN(verticalSpaceNum) && verticalSpaceNum >= 1 ? verticalSpaceNum : 32
+
+					const horizontalSpaceRaw = event.options.horizontalSpace
+					const horizontalSpaceNum =
+						horizontalSpaceRaw !== undefined && horizontalSpaceRaw !== null ? Number(horizontalSpaceRaw) : Number.NaN
+					const horizontalSpace = !Number.isNaN(horizontalSpaceNum) && horizontalSpaceNum >= 1 ? horizontalSpaceNum : 32
+
+					// TODO: Get screen resolution dynamically based on selected screen
+					// For now, using a large default max value (32767) to allow any reasonable resolution
+					// verticalSpace max should be: screen horizontal resolution / 4
+					// horizontalSpace max should be: screen vertical resolution / 4
+					// Example: For 1920x1080 screen, verticalSpace max = 1920/4 = 480, horizontalSpace max = 1080/4 = 270
+					const screenHorizontalResolution = 32767 // TODO: Get from screen object
+					const screenVerticalResolution = 32767 // TODO: Get from screen object
+					const verticalSpaceMax = Math.floor(screenHorizontalResolution / 4)
+					const horizontalSpaceMax = Math.floor(screenVerticalResolution / 4)
+
+					// Validate and clamp values
+					const validatedVerticalSpace = Math.max(1, Math.min(verticalSpace, verticalSpaceMax))
+					const validatedHorizontalSpace = Math.max(1, Math.min(horizontalSpace, horizontalSpaceMax))
+
+					if (verticalSpace !== validatedVerticalSpace) {
+						self.log(
+							'warn',
+							`verticalSpace value ${verticalSpace} clamped to ${validatedVerticalSpace} (max: ${verticalSpaceMax} based on screen resolution)`,
+						)
+					}
+					if (horizontalSpace !== validatedHorizontalSpace) {
+						self.log(
+							'warn',
+							`horizontalSpace value ${horizontalSpace} clamped to ${validatedHorizontalSpace} (max: ${horizontalSpaceMax} based on screen resolution)`,
+						)
+					}
+
+					// Convert checkbox boolean to number (true -> 1, false -> 0)
+					const screenBorder = event.options.screenBorder ? 1 : 0
+					const interfaceBorder = event.options.interfaceBorder ? 1 : 0
+					const position = Number(event.options.position ?? 3)
+
+					const grid = isSpacingLevelVisible ? Number(event.options.spacingLevel ?? 5) : horizontalSpace
+
+					const payload: TestPatternPayload = {
+						enable: enable,
+						type: patternType,
+						bright: isNaN(bright) ? 100 : Math.max(0, Math.min(100, bright)),
+						gridType: gridType,
+						gridLineWidth: gridLineWidth,
+						speed: isNaN(speed) ? SPEED_LEVEL_CHOICES[0].value : speed,
+						verticalGrid: verticalSpace,
+						verticalSpace: verticalSpace,
+						grid: grid,
+						horizontalSpace: horizontalSpace,
+						screenBorder: screenBorder,
+						interfaceBorder: interfaceBorder,
+						position: position,
+					}
+
+					if (enable === 0) {
+						self.log('info', `Disabling test pattern on screen ${screen.screenId}`)
+					}
+
+					self.log(
+						'info',
+						`Setting test pattern: ${JSON.stringify({ screenId: screen.screenId, testPattern: payload })}`,
+					)
+					await self.apiClient?.setTestPatternOnScreen(screen, payload)
+
+					self.checkFeedbacks('screenTestPatternState')
+				} catch (error: any) {
+					self.log('error', `Failed to set test pattern: ${error.message}`)
+					self.log('error', `Error details: ${JSON.stringify(error)}`)
 				}
 			},
 		},
