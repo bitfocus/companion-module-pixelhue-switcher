@@ -21,6 +21,8 @@ import {
 	TestPatternPayload,
 	TestPatternGridType,
 } from './interfaces/TestPattern.js'
+import { applyPresetScreenSelection } from './utils/screenSelection.js'
+import { backupEntryHasOfflineSource } from './utils/backupDisplay.js'
 
 export function updateCompanionActions(self: ModuleInstance): void {
 	self.setActionDefinitions({
@@ -373,8 +375,10 @@ export function updateCompanionActions(self: ModuleInstance): void {
 
 					const preset = self.presets.find((preset) => preset.serial === event.options.presetId!)
 					if (!preset) return
-					const result = await self.apiClient?.loadPreset(preset, sceneType!)
-					self.log('debug', JSON.stringify(result))
+					applyPresetScreenSelection(self, preset)
+					await self.apiClient?.loadPreset(preset, sceneType!)
+					await self.apiClient?.selectScreens(self.screens)
+					self.checkFeedbacks('screenState')
 				} catch (error: any) {
 					self.log('error', (error as HTTPError).message)
 				}
@@ -458,10 +462,12 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			callback: async (event, context) => {
 				try {
 					const selectedLayer = await getLayerBySelection(self, event, context)
-					if (!selectedLayer) return
+					if (!selectedLayer) {
+						self.log('warn', 'bringTo: no layer matched selection')
+						return
+					}
 
-					const result = await self.apiClient?.bringSelectedTo(selectedLayer.layerId, <number>event.options.bringTo)
-					console.log(result)
+					await self.apiClient?.bringSelectedTo(selectedLayer.layerId, <number>event.options.bringTo)
 				} catch {
 					self.log('error', 'bring_to send error')
 				}
@@ -688,7 +694,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 		switchSourceBackup: {
 			name: 'Switch Input Backup',
 			description:
-				'Manual switch of input backup (only when switchMode=1). When switchMode=0 (auto), no command is sent to the device.',
+				'Manual switch of input backup when enable=1. Skips PUT when disabled, or when switchMode=0 (auto) and either primary/backup source is offline.',
 			options: [
 				{
 					type: 'dropdown',
@@ -717,10 +723,15 @@ export function updateCompanionActions(self: ModuleInstance): void {
 				const entry = currentSourceBackup.backup.find((b) => b.id === selectedId)
 				if (!entry) return
 
-				if (entry.switchMode === 0) {
+				if (currentSourceBackup.enable !== 1) {
+					self.log('info', 'switchSourceBackup: input backup disabled (enable=0); skipping device PUT')
+					return
+				}
+
+				if (entry.switchMode === 0 && backupEntryHasOfflineSource(self, entry)) {
 					self.log(
 						'info',
-						`switchSourceBackup: backup id ${selectedId} uses auto switch (switchMode=0); skipping device PUT`,
+						`switchSourceBackup: backup id ${selectedId} auto switch (switchMode=0) with offline source; skipping device PUT`,
 					)
 					return
 				}
