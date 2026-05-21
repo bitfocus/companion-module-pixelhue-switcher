@@ -1,5 +1,5 @@
 import got from 'got'
-import { filterValidPresets, filterValidScreens } from '../utils/listFilters.js'
+import { filterValidScreens } from '../utils/listFilters.js'
 import { generateToken } from '../utils/utils.js'
 import { ModuleInstance } from '../main.js'
 import { Screen, ScreenListDetailData } from '../interfaces/Screen.js'
@@ -314,16 +314,7 @@ export class ApiClient {
 	}
 
 	async getPresets(): Promise<Response<PresetListDetailData>> {
-		const res = await this.http!.get<Response<PresetListDetailData>>(this.cfg.endpoints.preset.list)
-		const list = filterValidPresets(Array.isArray(res.data?.list) ? res.data.list : [])
-		return {
-			...res,
-			data: {
-				...res.data,
-				list,
-				totalCount: list.length,
-			},
-		}
+		return this.http!.get(this.cfg.endpoints.preset.list)
 	}
 
 	async getLayers(): Promise<Response<LayerListDetailData>> {

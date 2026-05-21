@@ -4,17 +4,9 @@ import { Screen, ScreenSelectionData, UpdateLayoutData } from '../interfaces/Scr
 import { Preset, PresetListDetailData } from '../interfaces/Preset.js'
 import { WebsocketCallbackData } from '../interfaces/WebsocketCallbackData.js'
 import { filterValidScreens, isValidPreset, isValidScreen } from '../utils/listFilters.js'
+import { applyPresetScreenSelection } from '../utils/screenSelection.js'
 import { realMerge } from '../utils/utils.js'
 import { SourceBackup } from '../interfaces/SourceBackup.js'
-
-/** 用 screenIdObj.id + type 标识屏幕，与预设里 screens 项及 self.screens 对齐 */
-function screenIdentityKey(screenIdObj: Screen['screenIdObj'] | undefined | null): string | null {
-	if (screenIdObj == null) return null
-	const id = Number(screenIdObj.id)
-	const type = Number(screenIdObj.type)
-	if (!Number.isFinite(id) || !Number.isFinite(type)) return null
-	return `${id}:${type}`
-}
 
 export const MessageTypes = {
 	layersSelected: 0x81105,
@@ -297,18 +289,7 @@ export function presetApplied(self: ModuleInstance, message: WebsocketCallbackDa
 
 	data?.list?.forEach((preset) => {
 		if (preset.currentRegion > 2 && !didTake) {
-			const selectedScreenKeys = new Set<string>()
-			for (const ps of preset.screens ?? []) {
-				const key = screenIdentityKey(ps?.screenIdObj)
-				if (key) selectedScreenKeys.add(key)
-			}
-			self.screens = self.screens.map((screen): Screen => {
-				const key = screenIdentityKey(screen.screenIdObj)
-				return {
-					...screen,
-					select: key !== null && selectedScreenKeys.has(key) ? 1 : 0,
-				}
-			})
+			applyPresetScreenSelection(self, preset)
 		}
 		self.presets = self.presets.map((singlePreset): Preset => {
 			if (singlePreset.currentRegion === preset.currentRegion || preset.currentRegion === 6) {

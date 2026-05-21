@@ -28,13 +28,21 @@ export function getLayerSelectionOptions(
 		})
 	}
 
+	const screenChoices = self.screens
+		.filter((screen) => allowedScreenTypes.includes(screen.screenIdObj.type))
+		.map(
+			(screen): DropdownChoice => ({
+				id: screen.screenId,
+				label: screen.general.name,
+			}),
+		)
+
 	return [
 		...fields,
 		{
 			type: 'textinput',
 			label: 'Layer No.',
 			id: 'layerNumber',
-			required: true,
 			default: '1',
 			useVariables: true,
 			isVisibleExpression: '$(options:useSelected) != true',
@@ -43,17 +51,8 @@ export function getLayerSelectionOptions(
 			type: 'dropdown',
 			label: 'Screen',
 			id: 'screenId',
-			default: self.screens[0].screenId,
-			choices: self.screens
-				.filter((screen) => {
-					return allowedScreenTypes.includes(screen.screenIdObj.type)
-				})
-				.map((screen): DropdownChoice => {
-					return {
-						id: screen.screenId,
-						label: screen.general.name,
-					}
-				}),
+			default: screenChoices[0]?.id ?? 0,
+			choices: screenChoices,
 			isVisibleExpression: '$(options:useSelected) != true',
 		},
 		{
@@ -81,22 +80,19 @@ export async function getLayerBySelection(
 	event: CompanionActionEvent,
 	context: CompanionActionContext,
 ): Promise<Layer | undefined> {
-	const parsedLayerNumber = parseInt(await context.parseVariablesInString(<string>event.options.layerNumber))
+	if (event.options.useSelected) {
+		return self.layers.find((layer) => layer.selected === 1)
+	}
+
+	const parsedLayerNumber = parseInt(await context.parseVariablesInString(<string>event.options.layerNumber ?? ''), 10)
 	if (isNaN(parsedLayerNumber)) return undefined
 
-	if (event.options.useSelected) {
-		return self.layers.find((layer) => {
-			return layer.selected === 1
-		})
-	} else {
-		return self.layers.find((layer) => {
-			return (
-				layer.layerIdObj.attachScreenId === event.options.screenId &&
-				layer.serial === parsedLayerNumber &&
-				layer.layerIdObj.sceneType === event.options.where
-			)
-		})
-	}
+	return self.layers.find(
+		(layer) =>
+			layer.layerIdObj.attachScreenId === event.options.screenId &&
+			layer.serial === parsedLayerNumber &&
+			layer.layerIdObj.sceneType === event.options.where,
+	)
 }
 
 export function getScreenSelectionOptions(
