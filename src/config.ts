@@ -1,8 +1,17 @@
 import { Regex, type SomeCompanionConfigField } from '@companion-module/base'
 
+export const DEFAULT_DEVICE_SN = 'Default'
+
+export const DEFAULT_DEVICE = { id: DEFAULT_DEVICE_SN, label: 'Default' }
+
+export function isDefaultDeviceSn(deviceSn?: string): boolean {
+	return !deviceSn?.trim() || deviceSn === DEFAULT_DEVICE_SN
+}
+
 export const defaultConfig = (): ModuleConfig => {
 	return {
 		host: '127.0.0.1',
+		deviceSn: DEFAULT_DEVICE_SN,
 	}
 }
 
@@ -21,6 +30,12 @@ export class Config {
 	}
 
 	public GetConfigFields(): SomeCompanionConfigField[] {
+		const choices = [DEFAULT_DEVICE, ...this.discoveredDevices]
+		const resolvedDefault =
+			this.config.deviceSn && choices.some((choice) => choice.id === this.config.deviceSn)
+				? this.config.deviceSn
+				: DEFAULT_DEVICE_SN
+
 		return [
 			{
 				type: 'textinput',
@@ -35,8 +50,8 @@ export class Config {
 				id: 'deviceSn',
 				label: 'Discovered device',
 				width: 12,
-				choices: this.discoveredDevices,
-				default: this.config.deviceSn ?? this.discoveredDevices[0]?.id,
+				choices,
+				default: resolvedDefault,
 			},
 		]
 	}

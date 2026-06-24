@@ -88,6 +88,7 @@ export class ApiClient {
 		instance.log('debug', `Open Detail response: ${JSON.stringify(openDetail)}`)
 		const serialNumber = openDetail.data.sn
 		const startTime = openDetail.data.startTime
+		instance.deviceSn = serialNumber
 		this.token = generateToken(serialNumber, startTime)
 		instance.log('debug', `Token: ${this.token}`)
 		this.http.setToken(this.token)

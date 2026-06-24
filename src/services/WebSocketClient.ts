@@ -3,16 +3,19 @@ import type { ModuleInstance } from '../main.js'
 import { webSocketHandlers } from '../services/WebSocketHandling.js'
 import { TextDecoder } from 'util'
 import { EWebsocketCallbackType, WebsocketCallbackData } from '../interfaces/WebsocketCallbackData.js'
+import { isMessageForThisDevice } from '../utils/websocketFilter.js'
 
 export class WebSocketClient {
 	private instance: ModuleInstance
 	private host: string
 	private token: string
 	private socket: WebSocket | null = null
+	private intentionalDisconnect = false
+	private disconnectNotified = false
 
 	private readonly onMessage = (data: WebSocket.RawData) => this.messageReceived(data)
-	private readonly onError = () => this.instance.error()
-	private readonly onClose = () => this.instance.error()
+	private readonly onRuntimeError = () => this.notifyDisconnect()
+	private readonly onRuntimeClose = () => this.notifyDisconnect()
 
 	private decoder = new TextDecoder()
 
@@ -24,28 +27,74 @@ export class WebSocketClient {
 
 	static async create(instance: ModuleInstance, host: string, token: string): Promise<WebSocketClient> {
 		const client = new WebSocketClient(instance, host, token)
-		client.connect()
+		await client.connect()
 		return client
 	}
 
-	connect(): void {
-		this.socket = new WebSocket(`wss://${this.host}:19998/unico/v1/ucenter/ws?client-type=8`, {
-			headers: {
-				Authorization: this.token,
-			},
-			rejectUnauthorized: false,
-		})
+	async connect(): Promise<void> {
+		this.intentionalDisconnect = false
+		this.disconnectNotified = false
 
-		this.socket.on('message', this.onMessage)
-		this.socket.on('error', this.onError)
-		this.socket.on('close', this.onClose)
+		await new Promise<void>((resolve, reject) => {
+			const socket = new WebSocket(`wss://${this.host}:19998/unico/v1/ucenter/ws?client-type=8`, {
+				headers: {
+					Authorization: this.token,
+				},
+				rejectUnauthorized: false,
+			})
+			this.socket = socket
+
+			const cleanupInitial = () => {
+				socket.off('open', onOpen)
+				socket.off('error', onInitialError)
+				socket.off('close', onInitialClose)
+			}
+
+			const onOpen = () => {
+				cleanupInitial()
+				socket.on('message', this.onMessage)
+				socket.on('error', this.onRuntimeError)
+				socket.on('close', this.onRuntimeClose)
+				resolve()
+			}
+
+			const onInitialError = (error: Error) => {
+				cleanupInitial()
+				this.socket = null
+				reject(error instanceof Error ? error : new Error(String(error)))
+			}
+
+			const onInitialClose = () => {
+				cleanupInitial()
+				this.socket = null
+				reject(new Error('WebSocket closed before open'))
+			}
+
+			socket.once('open', onOpen)
+			socket.once('error', onInitialError)
+			socket.once('close', onInitialClose)
+		})
+	}
+
+	private notifyDisconnect(): void {
+		if (this.intentionalDisconnect || this.disconnectNotified) return
+
+		this.disconnectNotified = true
+		if (this.socket) {
+			this.socket.off('message', this.onMessage)
+			this.socket.off('error', this.onRuntimeError)
+			this.socket.off('close', this.onRuntimeClose)
+		}
+		this.socket = null
+		this.instance.handleWebSocketDisconnect()
 	}
 
 	disconnect(): void {
+		this.intentionalDisconnect = true
 		if (this.socket) {
-			this.socket.off?.('message', this.onMessage)
-			this.socket.off?.('error', this.onError)
-			this.socket.off?.('close', this.onClose)
+			this.socket.off('message', this.onMessage)
+			this.socket.off('error', this.onRuntimeError)
+			this.socket.off('close', this.onRuntimeClose)
 
 			if (this.socket.readyState !== WebSocket.CLOSED) {
 				this.socket.terminate()
@@ -60,16 +109,18 @@ export class WebSocketClient {
 		const parsedMessage = this.parseTLVBuffer(Buffer.from(data))
 		//this.instance.log('info', `WebSocket message received: ${JSON.stringify(parsedMessage)}`)
 
-		if (
-			Object.keys(webSocketHandlers)
-				.map(Number)
-				.find((handlerId) => {
-					return handlerId == parsedMessage.tag
-				})
-		) {
-			this.instance.log('info', `WebSocket message received: ${JSON.stringify(parsedMessage)}`)
-			webSocketHandlers[parsedMessage.tag](this.instance, parsedMessage)
+		const handlerId = Object.keys(webSocketHandlers)
+			.map(Number)
+			.find((id) => id == parsedMessage.tag)
+
+		if (handlerId == null) return
+
+		if (!isMessageForThisDevice(this.instance, parsedMessage)) {
+			return
 		}
+
+		this.instance.log('info', `WebSocket message received: ${JSON.stringify(parsedMessage)}`)
+		webSocketHandlers[parsedMessage.tag](this.instance, parsedMessage)
 	}
 
 	parseTLVBuffer(buffer: Buffer): WebsocketCallbackData {

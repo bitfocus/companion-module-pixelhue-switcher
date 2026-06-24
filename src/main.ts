@@ -1,5 +1,5 @@
 import { InstanceBase, InstanceStatus, runEntrypoint, SomeCompanionConfigField } from '@companion-module/base'
-import { Config, defaultConfig, type ModuleConfig } from './config.js'
+import { Config, DEFAULT_DEVICE_SN, defaultConfig, isDefaultDeviceSn, type ModuleConfig } from './config.js'
 import { updateCompanionVariableDefinitions, updateVariableValues } from './variables.js'
 import { UpgradeScripts } from './upgrades.js'
 import { updateCompanionActions } from './actions.js'
@@ -22,6 +22,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	webSocket: WebSocketClient | null = null
 
 	discoveredDevices: Array<{ id: string; label: string }> = []
+	/** Device SN bound to this module; matched against WebSocket header.sn to filter cross-device reports */
+	deviceSn: string | null = null
 
 	screens: Screen[] = []
 	presets: Preset[] = []
@@ -33,6 +35,8 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	swapEnabled: boolean = true
 	effectTime: number = 1000
 	retryTimeout: NodeJS.Timeout | null = null
+	wsReconnectTimeout: NodeJS.Timeout | null = null
+	wsReconnectAttempt = 0
 
 	globalLoadPresetIn: number = LoadIn.preview
 	globalFtb: number = 0
@@ -58,6 +62,10 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			...config,
 		}
 
+		if (this.config.deviceSn?.trim() === '') {
+			this.config.deviceSn = undefined
+		}
+
 		if (this.retryTimeout) {
 			clearTimeout(this.retryTimeout)
 			this.retryTimeout = null
@@ -70,10 +78,12 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 			return
 		}
 
+		void this.runConnection()
+	}
+	private async runConnection(): Promise<void> {
 		try {
 			const devices = await discoverDevices(this.config.host)
 			this.log('debug', `Discovered devices: ${JSON.stringify(devices)}`)
-
 			this.discoveredDevices = devices.map((d) => ({
 				id: d.SN,
 				label: `${d.deviceName || 'Device'} (${d.SN}) – ${d.ip}`,
@@ -85,16 +95,14 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 				return
 			}
 
-			if (devices.length > 1 && !this.config.deviceSn) {
-				this.updateStatus(
-					InstanceStatus.BadConfig,
-					'Multiple devices found. Please select which one to control in the config.',
-				)
-				this.cleanup()
-				return
-			}
-
-			if (this.config.deviceSn) {
+			// getConfigFields().default only applies on first connection; saveConfig is required after discovery to refresh the dropdown selection
+			if (isDefaultDeviceSn(this.config.deviceSn)) {
+				this.config = {
+					...this.config,
+					deviceSn: DEFAULT_DEVICE_SN,
+				}
+				this.saveConfig(this.config)
+			} else {
 				const exists = devices.some((d) => d.SN === this.config.deviceSn)
 
 				if (!exists) {
@@ -104,17 +112,19 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 					)
 					this.log('warn', `Configured device SN "${this.config.deviceSn}" not found in discovery result.`)
 
-					this.log('info', `Clearing invalid device SN "${this.config.deviceSn}"`)
-					this.saveConfig({
+					this.log('info', `Resetting invalid device SN "${this.config.deviceSn}" to Default`)
+					this.config = {
 						...this.config,
-						deviceSn: undefined,
-					})
+						deviceSn: DEFAULT_DEVICE_SN,
+					}
+					this.saveConfig(this.config)
 
 					this.cleanup()
 					return
 				}
 			}
-			const targetSn = this.config.deviceSn ?? devices[0].SN
+
+			const targetSn = isDefaultDeviceSn(this.config.deviceSn) ? devices[0].SN : this.config.deviceSn!
 			this.apiClient = await ApiClient.create(this, this.config.host, { targetSn })
 			this.webSocket = await WebSocketClient.create(this, this.config.host, this.apiClient.token!)
 
@@ -157,13 +167,60 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 		}
 
 		this.retryTimeout = setTimeout(() => {
-			void this.configUpdated.bind(this)(this.config)
+			this.retryTimeout = null
+			void this.configUpdated(this.config)
 		}, 5000)
+	}
+
+	handleWebSocketDisconnect(): void {
+		if (this.wsReconnectTimeout != null) return
+
+		this.log('warn', 'WebSocket disconnected')
+		this.updateStatus(InstanceStatus.ConnectionFailure, 'WebSocket disconnected')
+
+		if (this.webSocket) {
+			this.webSocket.disconnect()
+			this.webSocket = null
+		}
+
+		const delay = Math.min(1000 * 2 ** this.wsReconnectAttempt, 30000)
+		this.wsReconnectTimeout = setTimeout(() => {
+			this.wsReconnectTimeout = null
+			void this.reconnectWebSocket()
+		}, delay)
+	}
+
+	private async reconnectWebSocket(): Promise<void> {
+		const token = this.apiClient?.token
+		if (!token || !this.config.host) {
+			this.wsReconnectAttempt = 0
+			this.error()
+			return
+		}
+
+		try {
+			this.webSocket = await WebSocketClient.create(this, this.config.host, token)
+			this.wsReconnectAttempt = 0
+			this.updateStatus(InstanceStatus.Ok)
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err)
+			this.log('error', `WebSocket reconnect failed: ${msg}`)
+			this.wsReconnectAttempt++
+
+			if (this.wsReconnectAttempt >= 10) {
+				this.wsReconnectAttempt = 0
+				this.error()
+				return
+			}
+
+			this.handleWebSocketDisconnect()
+		}
 	}
 
 	cleanup(): void {
 		this.cleanupConnections()
 
+		this.deviceSn = null
 		this.screens = []
 		this.presets = []
 		this.layers = []
@@ -179,9 +236,19 @@ export class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 
 	private cleanupConnections(): void {
+		if (this.wsReconnectTimeout) {
+			clearTimeout(this.wsReconnectTimeout)
+			this.wsReconnectTimeout = null
+		}
+		this.wsReconnectAttempt = 0
+
 		if (this.webSocket) {
 			this.webSocket.disconnect()
 			this.webSocket = null
+		}
+		if (this.retryTimeout) {
+			clearTimeout(this.retryTimeout)
+			this.retryTimeout = null
 		}
 		this.apiClient = null
 	}
