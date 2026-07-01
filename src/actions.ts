@@ -169,11 +169,17 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			options: [],
 			callback: async () => {
 				try {
+					if (!self.apiClient) {
+						self.log('error', 'CUT send error: API client not connected')
+						self.error()
+						return
+					}
 					const screensToTake = self.screens.filter((screen) => screen.select === 1)
-					const result = await self.apiClient?.cut(screensToTake, 0, self.swapEnabled)
-					console.log(result)
-				} catch {
-					self.log('error', 'cut send error')
+					await self.apiClient.cut(screensToTake, 0, self.swapEnabled)
+				} catch (error: unknown) {
+					const msg = error instanceof Error ? error.message : String(error)
+					self.log('error', `CUT send error: ${msg}`)
+					self.error()
 				}
 			},
 		},
@@ -182,10 +188,17 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			options: [],
 			callback: async () => {
 				try {
+					if (!self.apiClient) {
+						self.log('error', 'Match PGM send error: API client not connected')
+						self.error()
+						return
+					}
 					const screensToTake = self.screens.filter((screen) => screen.select === 1)
-					await self.apiClient?.cut(screensToTake, 1)
-				} catch {
-					self.log('error', 'cut send error')
+					await self.apiClient.cut(screensToTake, 1)
+				} catch (error: unknown) {
+					const msg = error instanceof Error ? error.message : String(error)
+					self.log('error', `Match PGM send error: ${msg}`)
+					self.error()
 				}
 			},
 		},
@@ -216,16 +229,23 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			],
 			callback: async (event) => {
 				try {
+					if (!self.apiClient) {
+						self.log('error', 'FTB send error: API client not connected')
+						self.error()
+						return
+					}
 					const screens = getScreensBySelection(self, event)
 					let ftb = !!event.options.ftb
 					if (event.options.ftb === -1) {
 						ftb = self.globalFtb !== 1
 					}
-					await self.apiClient?.ftb(screens, ftb, self.effectTime)
+					await self.apiClient.ftb(screens, ftb, self.effectTime)
 					self.globalFtb = self.globalFtb !== 1 ? 1 : 0
 					self.checkFeedbacks('globalFtbState')
-				} catch {
-					self.log('error', 'FTB send error')
+				} catch (error: unknown) {
+					const msg = error instanceof Error ? error.message : String(error)
+					self.log('error', `FTB send error: ${msg}`)
+					self.error()
 				}
 			},
 		},
@@ -264,16 +284,23 @@ export function updateCompanionActions(self: ModuleInstance): void {
 			],
 			callback: async (event) => {
 				try {
+					if (!self.apiClient) {
+						self.log('error', 'Freeze send error: API client not connected')
+						self.error()
+						return
+					}
 					const screens = getScreensBySelection(self, event)
 					let freeze = !!event.options.freeze
 					if (event.options.freeze === -1) {
 						freeze = self.globalFreeze !== 1
 					}
-					await self.apiClient?.freeze(screens, freeze)
+					await self.apiClient.freeze(screens, freeze)
 					self.globalFreeze = self.globalFreeze !== 1 ? 1 : 0
 					self.checkFeedbacks('globalFreezeState')
-				} catch {
-					self.log('error', 'FTB send error')
+				} catch (error: unknown) {
+					const msg = error instanceof Error ? error.message : String(error)
+					self.log('error', `Freeze send error: ${msg}`)
+					self.error()
 				}
 			},
 		},
@@ -630,8 +657,6 @@ export function updateCompanionActions(self: ModuleInstance): void {
 							enable: umd.enable === 1 ? 0 : 1,
 						}
 					})
-
-					console.log(umd)
 
 					await self.apiClient?.applyUMD(layer.layerId, umd)
 				} catch (error: any) {

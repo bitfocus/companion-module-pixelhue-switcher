@@ -144,7 +144,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 					type: 'dropdown',
 					label: 'Screen',
 					id: 'screenId',
-					default: 1,
+					default: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX])[0]?.guid ?? '',
 					choices: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]).map((screen): DropdownChoice => {
 						return {
 							id: screen.guid,
@@ -173,7 +173,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 					type: 'dropdown',
 					label: 'Screen',
 					id: 'screenId',
-					default: 1,
+					default: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX])[0]?.guid ?? '',
 					choices: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]).map((screen): DropdownChoice => {
 						return {
 							id: screen.guid,
@@ -202,7 +202,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 					type: 'dropdown',
 					label: 'Screen',
 					id: 'screenId',
-					default: '1',
+					default: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX])[0]?.guid ?? '',
 					choices: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]).map((screen): DropdownChoice => {
 						return {
 							id: screen.guid,
@@ -230,7 +230,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 					type: 'dropdown',
 					label: 'Screen',
 					id: 'screenId',
-					default: 1,
+					default: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX])[0]?.guid ?? '',
 					choices: self.getScreens([SCREEN_TYPE.SCREEN, SCREEN_TYPE.AUX]).map((screen): DropdownChoice => {
 						return {
 							id: screen.guid,
@@ -310,7 +310,7 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 		sourceBackupState: {
 			name: 'Input Backup – backup active',
 			type: 'boolean',
-			description: 'Change style when the selected Input Bckup configuration is using the backup input',
+			description: 'Change style when the selected Input Backup configuration is using the backup input',
 			defaultStyle: {
 				bgcolor: combineRgb(255, 0, 0),
 				color: combineRgb(255, 255, 255),
@@ -376,9 +376,9 @@ export function updateCompanionFeedbacks(self: ModuleInstance): void {
 						}
 					}
 
-					// Debug: 检查状态值
+					// Debug: inspect state value
 					self.log(
-						'info',
+						'debug',
 						`interfaceO: ${interfaceO.state}, astableSignal: ${InputSourceState.astableSignal}, astableSignalCopy: ${InputSourceState.astableSignalCopy}`,
 					)
 					const bgcolor = getStateColor(interfaceO.state)

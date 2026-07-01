@@ -1,8 +1,8 @@
 import type { ModuleInstance } from '../main.js'
-import type { Backup } from '../interfaces/SourceBackup.js'
+import type { Backup, SourceBackup } from '../interfaces/SourceBackup.js'
 import { InputSourceState } from '../feedbacks.js'
 
-/** 输入源全名截取前两段（以 `-` 分割），例如 `Input 1-2-HDMI 2.0` → `Input 1-2` */
+/** Take the first two segments of an input source full name (split on `-`), e.g. `Input 1-2-HDMI 2.0` → `Input 1-2` */
 export function shortenInputBackupDisplayName(full: string): string {
 	const parts = full.split('-')
 	if (parts.length < 3) return full
@@ -15,12 +15,12 @@ const ONLINE_INPUT_STATES = new Set<number>([
 	InputSourceState.haveSignalBackup,
 ])
 
-/** 输入源有信号视为在线（与 Input Source Signal State 反馈一致） */
+/** Input source is considered online when it has signal (same as Input Source Signal State feedback) */
 export function isInputSourceOnline(state: number): boolean {
 	return ONLINE_INPUT_STATES.has(state)
 }
 
-/** 备份对中主源或备源是否存在离线（无信号或未找到接口） */
+/** Whether either primary or backup in a backup pair is offline (no signal or interface not found) */
 export function backupEntryHasOfflineSource(self: ModuleInstance, entry: Backup): boolean {
 	const inputs = self.getInterfaces(2, 0)
 	const primary = inputs.find((i) => i.interfaceId === entry.primarySourceId)
@@ -28,7 +28,27 @@ export function backupEntryHasOfflineSource(self: ModuleInstance, entry: Backup)
 	return !primary || !isInputSourceOnline(primary.state) || !backup || !isInputSourceOnline(backup.state)
 }
 
-/** 与动作/反馈一致：用 interfaceType=2、workMode=0 的接口表解析名称 */
+/** Fields that affect action/feedback/preset/variable definitions (dropdown choices, preset buttons). */
+export function sourceBackupStructureKey(sourceBackups: SourceBackup): string {
+	const { backup, enable } = sourceBackups.sourceBackup
+	return JSON.stringify({
+		enable,
+		backup: (backup ?? []).map((b) => ({
+			id: b.id,
+			primarySourceId: b.primarySourceId,
+			primarySourceType: b.primarySourceType,
+			backupSourceId: b.backupSourceId,
+			backupSourceType: b.backupSourceType,
+		})),
+	})
+}
+
+/** Full runtime state including active source selection. */
+export function sourceBackupStateKey(sourceBackups: SourceBackup): string {
+	return JSON.stringify(sourceBackups)
+}
+
+/** Same as actions/feedbacks: resolve names from interfaces with interfaceType=2, workMode=0 */
 export function getBackupActiveSourceShortDisplay(self: ModuleInstance, backup: Backup): string {
 	const list = self.getInterfaces(2, 0)
 	const usingPrimary =

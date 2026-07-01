@@ -5,7 +5,7 @@ function isNonEmptyTrimmedString(value: unknown): boolean {
 	return typeof value === 'string' && value.trim() !== ''
 }
 
-/** 屏幕 guid、名称等关键字段为空白字符串时视为无效（设备偶发会混入占位项） */
+/** Treat screens with blank guid, name, or other key fields as invalid (device may occasionally include placeholder entries) */
 export function isValidScreen(screen: Screen): boolean {
 	return isNonEmptyTrimmedString(screen.guid) && screen.general != null && isNonEmptyTrimmedString(screen.general.name)
 }
@@ -14,7 +14,7 @@ export function filterValidScreens(list: Screen[]): Screen[] {
 	return list.filter(isValidScreen)
 }
 
-/** 场景 guid、名称为空白字符串时视为无效；同时净化嵌套的 screens */
+/** Treat presets with blank guid or name as invalid; also sanitize nested screens */
 export function isValidPreset(preset: Preset): boolean {
 	return isNonEmptyTrimmedString(preset.guid) && isNonEmptyTrimmedString(preset.name)
 }
