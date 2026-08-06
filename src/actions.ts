@@ -716,6 +716,80 @@ export function updateCompanionActions(self: ModuleInstance): void {
 				}
 			},
 		},
+		switchAllSourcePrimaries: {
+			name: 'Switch ALL Input Primaries',
+			description: 'Switch every configured input backup to its primary source with one device update',
+			options: [],
+			callback: async () => {
+				const currentSourceBackup = self.sourceBackups.sourceBackup
+				if (!currentSourceBackup || !currentSourceBackup.backup) return
+
+				if (currentSourceBackup.enable !== 1) {
+					self.log('info', 'switchAllSourcePrimaries: input backup disabled; skipping device PUT')
+					return
+				}
+
+				try {
+					const newBackupSource: SourceBackup = {
+						sourceBackup: {
+							...currentSourceBackup,
+							backup: currentSourceBackup.backup.map((backup) => ({
+								...backup,
+								primaryFirst: 1,
+								usingSourceId: backup.primarySourceId,
+								usingSourceType: backup.primarySourceType,
+							})),
+						},
+					}
+
+					self.log('debug', `Setting ALL primary sources: ${JSON.stringify(newBackupSource)}`)
+					await self.apiClient?.setBackupSource(newBackupSource)
+					self.sourceBackups = newBackupSource
+					self.updateVariableValues()
+                        self.checkFeedbacks('sourceBackupState')
+				} catch (error: any) {
+					self.log('error', 'switchAllSourcePrimaries send error')
+					self.log('error', error)
+				}
+			},
+		},
+		switchAllSourceBackups: {
+			name: 'Switch ALL Input Backups',
+			description: 'Switch every configured input backup to its backup source with one device update',
+			options: [],
+			callback: async () => {
+				const currentSourceBackup = self.sourceBackups.sourceBackup
+				if (!currentSourceBackup || !currentSourceBackup.backup) return
+
+				if (currentSourceBackup.enable !== 1) {
+					self.log('info', 'switchAllSourceBackups: input backup disabled; skipping device PUT')
+					return
+				}
+
+				try {
+					const newBackupSource: SourceBackup = {
+						sourceBackup: {
+							...currentSourceBackup,
+							backup: currentSourceBackup.backup.map((backup) => ({
+								...backup,
+								primaryFirst: 0,
+								usingSourceId: backup.backupSourceId,
+								usingSourceType: backup.backupSourceType,
+							})),
+						},
+					}
+
+					self.log('debug', `Setting ALL backup sources: ${JSON.stringify(newBackupSource)}`)
+					await self.apiClient?.setBackupSource(newBackupSource)
+					self.sourceBackups = newBackupSource
+					self.updateVariableValues()
+                        self.checkFeedbacks('sourceBackupState')
+				} catch (error: any) {
+					self.log('error', 'switchAllSourceBackups send error')
+					self.log('error', error)
+				}
+			},
+		},
 		switchSourceBackup: {
 			name: 'Switch Input Backup',
 			description:
@@ -787,6 +861,7 @@ export function updateCompanionActions(self: ModuleInstance): void {
 					await self.apiClient?.setBackupSource(newBackupSource)
 					self.sourceBackups = newBackupSource
 					self.updateVariableValues()
+                        self.checkFeedbacks('sourceBackupState')
 				} catch (error: any) {
 					self.log('error', 'switchSourceBackup send error')
 					self.log('error', error)
