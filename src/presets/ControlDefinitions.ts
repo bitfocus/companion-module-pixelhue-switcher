@@ -79,6 +79,7 @@ export function getControlPresetDefinitions(self: ModuleInstance): CompanionPres
 							actionId: 'freeze',
 							options: {
 								freeze: -1,
+								useSelected: true,
 							},
 						},
 					],
@@ -113,6 +114,7 @@ export function getControlPresetDefinitions(self: ModuleInstance): CompanionPres
 							actionId: 'ftb',
 							options: {
 								ftb: -1,
+								useSelected: true,
 							},
 						},
 					],
