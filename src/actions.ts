@@ -235,6 +235,10 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						return
 					}
 					const screens = getScreensBySelection(self, event)
+					if (screens.length === 0) {
+						self.log('warn', 'FTB called with no screens selected')
+						return
+					}
 					let ftb = !!event.options.ftb
 					if (event.options.ftb === -1) {
 						ftb = self.globalFtb !== 1
@@ -290,6 +294,10 @@ export function updateCompanionActions(self: ModuleInstance): void {
 						return
 					}
 					const screens = getScreensBySelection(self, event)
+					if (screens.length === 0) {
+						self.log('warn', 'Freeze called with no screens selected')
+						return
+					}
 					let freeze = !!event.options.freeze
 					if (event.options.freeze === -1) {
 						freeze = self.globalFreeze !== 1

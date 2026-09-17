@@ -135,8 +135,9 @@ export function getScreensBySelection(self: ModuleInstance, event: CompanionActi
 			return screen.select === 1
 		})
 	} else {
+		const screenIds = (event.options.screenIds as string[] | undefined) ?? []
 		return self.screens.filter((screen) => {
-			return (event.options.screenIds as string[]).includes(screen.guid)
+			return screenIds.includes(screen.guid)
 		})
 	}
 }

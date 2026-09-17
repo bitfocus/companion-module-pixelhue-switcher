@@ -1,9 +1,13 @@
 import { WebSocket } from 'ws'
 import type { ModuleInstance } from '../main.js'
-import { webSocketHandlers } from '../services/WebSocketHandling.js'
+import { MessageTypes, webSocketHandlers } from '../services/WebSocketHandling.js'
 import { TextDecoder } from 'util'
 import { EWebsocketCallbackType, WebsocketCallbackData } from '../interfaces/WebsocketCallbackData.js'
 import { isMessageForThisDevice } from '../utils/websocketFilter.js'
+
+const MESSAGE_TYPE_NAMES: Record<number, string> = Object.fromEntries(
+	Object.entries(MessageTypes).map(([name, tag]) => [tag, name]),
+)
 
 export class WebSocketClient {
 	private instance: ModuleInstance
@@ -119,7 +123,11 @@ export class WebSocketClient {
 			return
 		}
 
-		this.instance.log('info', `WebSocket message received: ${JSON.stringify(parsedMessage)}`)
+		const tagName = MESSAGE_TYPE_NAMES[parsedMessage.tag] ?? 'unknown'
+		const rawSn = parsedMessage.header?.sn ?? parsedMessage.header?.SN
+		const sn = typeof rawSn === 'string' || typeof rawSn === 'number' ? String(rawSn) : ''
+		this.instance.log('info', `WS report: ${tagName} (0x${parsedMessage.tag.toString(16)}) sn=${sn}`)
+		this.instance.log('debug', `WebSocket message received: ${JSON.stringify(parsedMessage)}`)
 		webSocketHandlers[parsedMessage.tag](this.instance, parsedMessage)
 	}
 
